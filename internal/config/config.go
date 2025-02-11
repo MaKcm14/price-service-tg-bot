@@ -2,6 +2,7 @@ package conf
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -12,15 +13,19 @@ type Settings struct {
 	TgBotToken string
 }
 
-func NewSettings() Settings {
+func NewSettings(log *slog.Logger) Settings {
 	if err := godotenv.Load("../../.env"); err != nil {
-		panic(fmt.Sprintf("error of loading the .env file: %v", err))
+		errRecord := fmt.Sprintf("error of loading the .env file: %v", err)
+		log.Error(errRecord)
+		panic(errRecord)
 	}
 
 	token := os.Getenv("BOT_TOKEN")
 
 	if len(token) == 0 {
-		panic("error of BOT_TOKEN var: check this var is set or its value is not empty and try again")
+		errRecord := "error of BOT_TOKEN var: check this var is set or its value is not empty and try again"
+		log.Error(errRecord)
+		panic(errRecord)
 	}
 
 	return Settings{
