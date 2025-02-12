@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,6 +10,8 @@ import (
 
 	conf "github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/config"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/postgres"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 )
 
 // Service defines the configured application that is ready to be started.
@@ -33,7 +36,16 @@ func NewService() Service {
 
 	config := conf.NewSettings(log)
 
-	bot, err := tgbot.New(config.TgBotToken, log)
+	log.Info("connecting to the db begun")
+
+	dbConn, err := postgres.New(context.Background(), config.DSN, log)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("error starting the DB: %v", err))
+		panic(err)
+	}
+
+	bot, err := tgbot.New(config.TgBotToken, log, services.NewUserInteractor(log, dbConn))
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of starting the bot: %v", err))

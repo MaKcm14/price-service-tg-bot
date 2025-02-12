@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS favorites;
+
+DROP TABLE IF EXISTS tracked_products;
+
+DROP TABLE IF EXISTS users;

@@ -6,14 +6,36 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// start is the action on the /start command.
 func (t TgBot) start(update *tgbotapi.Update) {
-	// write here the start logic with greetings and identification.
+	var greets = []string{
+		"*Привет, меня зовут Скрудж, и я очень люблю экономить время людей!* 🦆\n\n",
+		"📝*Немного обо мне*\nЯ бот, который поможет тебе найти оптимальную цену на нужный товар 🛒\n\n",
+		"*Чтобы воспользоваться моими функциями переходи в меню 👇*",
+	}
+
+	buffer := bytes.Buffer{}
+
+	for _, greet := range greets {
+		buffer.WriteString(greet)
+	}
+
+	t.userInteractor.IdentifyUser(update.Message.Chat.ID)
+
+	var keyboardStart = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menu),
+	))
+	var message = tgbotapi.NewMessage(update.Message.Chat.ID, buffer.String())
+
+	message.ParseMode = parseMode
+	message.ReplyMarkup = keyboardStart
+
+	t.bot.Send(message)
 }
 
 // menu is the action on the /menu command.
-func (t TgBot) menu(update *tgbotapi.Update) {
+func (t TgBot) menu(chatID int64) {
 	var menu = []string{
-		"*Меня зовут Скрудж, и я очень люблю экономить время людей!* 🦆\n\n",
 		"*Вот, с чем я могу тебе помочь:*\n\n",
 		"✔*Price range*\n",
 		"- найти товары по заданному тобою диапазону цен 📊\n\n",
@@ -31,12 +53,12 @@ func (t TgBot) menu(update *tgbotapi.Update) {
 	}
 
 	var keyboardMenu = tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Price range 📊", "price-range")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Exact price 🏷️", "exact-price")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Best price 📉", "best-price")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Обычный поиск 🔎", "search")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Избранное ⭐", "favourite-products")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", "tracked-products")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Price range 📊", priceRangeModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Exact price 🏷️", exactPriceModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Best price 📉", bestPriceModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Обычный поиск 🔎", searchModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Избранное ⭐", favouriteModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
 	)
 
 	buffer := bytes.Buffer{}
@@ -45,9 +67,10 @@ func (t TgBot) menu(update *tgbotapi.Update) {
 		buffer.WriteString(opt)
 	}
 
-	message := tgbotapi.NewMessage(update.Message.Chat.ID, buffer.String())
+	message := tgbotapi.NewMessage(chatID, buffer.String())
 
-	message.ParseMode = ParseMode
+	message.ParseMode = parseMode
 	message.ReplyMarkup = keyboardMenu
+
 	t.bot.Send(message)
 }
