@@ -3,6 +3,7 @@ package tgbot
 import (
 	"log/slog"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -12,6 +13,7 @@ type TgBot struct {
 	logger *slog.Logger
 
 	userLastAction map[int64]string
+	userRequest    map[int64]dto.ProductRequest
 	userInteractor services.UserActions
 }
 
@@ -29,6 +31,7 @@ func New(token string, logger *slog.Logger, interactor services.UserActions) (Tg
 		bot:            bot,
 		logger:         logger,
 		userLastAction: make(map[int64]string, 10000),
+		userRequest:    make(map[int64]dto.ProductRequest, 10000),
 		userInteractor: interactor,
 	}, nil
 }
@@ -46,31 +49,39 @@ func (t *TgBot) Run() {
 		if update.Message != nil {
 			switch update.Message.Command() {
 			case "start":
-				if t.userLastAction[update.Message.Chat.ID] == "start" {
-					continue
-				}
-
 				t.start(&update)
-				t.userLastAction[update.Message.Chat.ID] = "start"
 
-			case menu:
-				if t.userLastAction[update.CallbackQuery.From.ID] == menu {
-					continue
-				}
-
+			case menuAction:
 				t.menu(update.Message.Chat.ID)
-				t.userLastAction[update.CallbackQuery.From.ID] = menu
+
+			default:
+				if action, flagExist := t.userLastAction[update.Message.Chat.ID]; flagExist &&
+					action == productSetter {
+					t.setQuery(&update)
+					t.showRequest(&update)
+				}
 			}
 
 		} else if update.CallbackQuery != nil {
 			switch update.CallbackQuery.Data {
-			case menu:
-				if t.userLastAction[update.CallbackQuery.From.ID] == menu {
-					continue
-				}
-
+			case menuAction:
 				t.menu(update.CallbackQuery.From.ID)
-				t.userLastAction[update.CallbackQuery.From.ID] = menu
+
+			case bestPriceModeData:
+				t.bestPriceMode(&update)
+
+			case marketSetterMode:
+				t.marketSetterMode(&update)
+
+			case wildberries, megamarket:
+				t.addMarket(&update)
+
+			case productSetter:
+				t.productSetter(&update)
+
+			case startSearch:
+				t.startSearch(&update)
+
 			}
 		}
 	}

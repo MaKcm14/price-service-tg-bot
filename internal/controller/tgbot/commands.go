@@ -2,12 +2,15 @@ package tgbot
 
 import (
 	"bytes"
+	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // start is the action on the /start command.
-func (t TgBot) start(update *tgbotapi.Update) {
+func (t *TgBot) start(update *tgbotapi.Update) {
+	t.userLastAction[update.Message.Chat.ID] = "start"
+
 	var greets = []string{
 		"*Привет, меня зовут Скрудж, и я очень люблю экономить время людей!* 🦆\n\n",
 		"📝*Немного обо мне*\nЯ бот, который поможет тебе найти оптимальную цену на нужный товар 🛒\n\n",
@@ -23,28 +26,24 @@ func (t TgBot) start(update *tgbotapi.Update) {
 	t.userInteractor.IdentifyUser(update.Message.Chat.ID)
 
 	var keyboardStart = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menu),
+		tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction),
 	))
 	var message = tgbotapi.NewMessage(update.Message.Chat.ID, buffer.String())
 
-	message.ParseMode = parseMode
+	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardStart
 
 	t.bot.Send(message)
 }
 
-// menu is the action on the /menu command.
-func (t TgBot) menu(chatID int64) {
+// menu is the action on the /menu command or pressing the menu-button.
+func (t *TgBot) menu(chatID int64) {
+	t.userLastAction[chatID] = menuAction
+
 	var menu = []string{
 		"*Вот, с чем я могу тебе помочь:*\n\n",
-		"✔*Price range*\n",
-		"- найти товары по заданному тобою диапазону цен 📊\n\n",
-		"✔*Exact price*\n",
-		"- найти товары по твоей точной цене 🏷️\n\n",
 		"✔*Best price*\n",
 		"- найти товары по минимальной цене (самые дешевые) 📉\n\n",
-		"✔*Обычный поиск*\n",
-		"- осуществить обычный поиск товаров 🔎\n\n",
 		"✔*Избранное:*\n",
 		"- вести избранные товары ⭐\n\n",
 		"✔*Отслеживаемые товары:*\n",
@@ -53,10 +52,7 @@ func (t TgBot) menu(chatID int64) {
 	}
 
 	var keyboardMenu = tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Price range 📊", priceRangeModeData)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Exact price 🏷️", exactPriceModeData)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Best price 📉", bestPriceModeData)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Обычный поиск 🔎", searchModeData)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Избранное ⭐", favouriteModeData)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
 	)
@@ -69,8 +65,36 @@ func (t TgBot) menu(chatID int64) {
 
 	message := tgbotapi.NewMessage(chatID, buffer.String())
 
-	message.ParseMode = parseMode
+	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMenu
+
+	t.bot.Send(message)
+}
+
+// showRequest shows the finished request that will use to get the products.
+func (t *TgBot) showRequest(update *tgbotapi.Update) {
+	t.userLastAction[update.Message.Chat.ID] = showRequest
+
+	var request = "✔*Запрос готов! 📝*\n\n*✔Маркеты поиска 🛒*\n"
+
+	for _, market := range t.userRequest[update.Message.Chat.ID].Markets {
+		request += fmt.Sprintf("• %s\n", market)
+	}
+
+	request += fmt.Sprintf("\n*Товар: %s* 📦\n\n", t.userRequest[update.Message.Chat.ID].Query)
+
+	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
+
+	var keyboard = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Запустить поиск 🔎", startSearch)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Собрать заново 🔁", bestPriceModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	var message = tgbotapi.NewMessage(update.Message.Chat.ID, request)
+
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
 
 	t.bot.Send(message)
 }
