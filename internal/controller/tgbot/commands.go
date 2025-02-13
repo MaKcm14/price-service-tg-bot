@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -39,6 +40,7 @@ func (t *TgBot) start(update *tgbotapi.Update) {
 // menu is the action on the /menu command or pressing the menu-button.
 func (t *TgBot) menu(chatID int64) {
 	t.userLastAction[chatID] = menuAction
+	t.userRequest[chatID] = dto.ProductRequest{}
 
 	var menu = []string{
 		"*Вот, с чем я могу тебе помочь:*\n\n",
@@ -53,7 +55,7 @@ func (t *TgBot) menu(chatID int64) {
 
 	var keyboardMenu = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Best price 📉", bestPriceModeData)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Избранное ⭐", favouriteModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Избранное ⭐", favoriteModeData)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
 	)
 

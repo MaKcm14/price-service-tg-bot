@@ -5,6 +5,7 @@ import (
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
+	"github.com/MaKcm14/price-service/pkg/entities"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -13,11 +14,16 @@ type TgBot struct {
 	logger *slog.Logger
 
 	userLastAction map[int64]string
-	userRequest    map[int64]dto.ProductRequest
+	userSamplePtr  map[int64]map[string]int
+	userSample     map[int64]map[string]entities.ProductSample
+
+	userRequest map[int64]dto.ProductRequest
+
 	userInteractor services.UserActions
+	api            services.ApiInteractor
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserActions) (TgBot, error) {
+func New(token string, logger *slog.Logger, interactor services.UserActions, api services.ApiInteractor) (TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -32,7 +38,10 @@ func New(token string, logger *slog.Logger, interactor services.UserActions) (Tg
 		logger:         logger,
 		userLastAction: make(map[int64]string, 10000),
 		userRequest:    make(map[int64]dto.ProductRequest, 10000),
+		userSamplePtr:  make(map[int64]map[string]int, 10000),
+		userSample:     make(map[int64]map[string]entities.ProductSample),
 		userInteractor: interactor,
+		api:            api,
 	}, nil
 }
 
@@ -74,6 +83,12 @@ func (t *TgBot) Run() {
 				t.marketSetterMode(&update)
 
 			case wildberries, megamarket:
+				if action, flagExist := t.userLastAction[update.CallbackQuery.From.ID]; flagExist &&
+					action == productsIter {
+					t.productsIter(&update, update.CallbackQuery.Data)
+					continue
+				}
+
 				t.addMarket(&update)
 
 			case productSetter:
@@ -82,6 +97,8 @@ func (t *TgBot) Run() {
 			case startSearch:
 				t.startSearch(&update)
 
+			case productsIter:
+				t.productsIter(&update, "")
 			}
 		}
 	}

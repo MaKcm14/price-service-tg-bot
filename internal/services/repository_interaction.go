@@ -1,6 +1,11 @@
 package services
 
-import "context"
+import (
+	"context"
+
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
+	"github.com/MaKcm14/price-service/pkg/entities"
+)
 
 type (
 	// RepoValidator defines the check-actions.
@@ -16,5 +21,9 @@ type (
 	Repository interface {
 		RepoValidator
 		RepoUpdater
+	}
+
+	ApiInteractor interface {
+		GetProductsByBestPrice(request dto.ProductRequest) (map[string]entities.ProductSample, error)
 	}
 )

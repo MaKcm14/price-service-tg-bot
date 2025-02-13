@@ -10,6 +10,7 @@ import (
 
 	conf "github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/config"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/postgres"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 )
@@ -45,7 +46,7 @@ func NewService() Service {
 		panic(err)
 	}
 
-	bot, err := tgbot.New(config.TgBotToken, log, services.NewUserInteractor(log, dbConn))
+	bot, err := tgbot.New(config.TgBotToken, log, services.NewUserInteractor(log, dbConn), api.NewPriceServiceApi(config.Socket, log))
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of starting the bot: %v", err))

@@ -20,10 +20,12 @@ const (
 	// Button's data name.
 	bestPriceModeData = "best-price"
 	startSearch       = "start-search"
-	favouriteModeData = "favourite-products"
+	favoriteModeData  = "favourite-products"
 	trackedModeData   = "tracked-products"
 	marketSetterMode  = "markets-setter"
 	productSetter     = "product-setter"
+	productsIter      = "products-iter"
+	addToFavorite     = "add-favorite"
 )
 
 // addMarket adds the market to the request for the current ChatID.

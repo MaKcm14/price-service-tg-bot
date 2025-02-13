@@ -12,6 +12,7 @@ import (
 type Settings struct {
 	TgBotToken string
 	DSN        string
+	Socket     string
 }
 
 func NewSettings(log *slog.Logger) Settings {
@@ -37,8 +38,16 @@ func NewSettings(log *slog.Logger) Settings {
 		panic(fmt.Sprintf("error of DSN var: %v", errVar))
 	}
 
+	socket := os.Getenv("SOCKET")
+
+	if len(socket) == 0 {
+		log.Error(fmt.Sprintf("error of SOCKET var: %v", errVar))
+		panic(fmt.Sprintf("error of SOCKET var: %v", errVar))
+	}
+
 	return Settings{
 		TgBotToken: token,
 		DSN:        dsn,
+		Socket:     socket,
 	}
 }
