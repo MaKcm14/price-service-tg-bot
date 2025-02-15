@@ -14,8 +14,9 @@ type TgBot struct {
 	logger *slog.Logger
 
 	userLastAction map[int64]string
-	userSamplePtr  map[int64]map[string]int
-	userSample     map[int64]map[string]entities.ProductSample
+
+	userSamplePtr map[int64]map[string]int
+	userSample    map[int64]map[string]entities.ProductSample
 
 	userRequest map[int64]dto.ProductRequest
 
@@ -99,6 +100,12 @@ func (t *TgBot) Run() {
 
 			case productsIter:
 				t.productsIter(&update, "")
+
+			case favoriteModeData:
+				t.favoriteMode(&update)
+
+			case showFavoriteProducts:
+
 			}
 		}
 	}

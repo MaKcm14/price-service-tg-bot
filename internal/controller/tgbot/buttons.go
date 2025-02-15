@@ -157,6 +157,7 @@ func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
 	if sample := t.userSample[update.CallbackQuery.From.ID][market]; len(sample.Products) <= count {
 		return
 	}
+
 	sample := t.userSample[update.CallbackQuery.From.ID][market]
 
 	t.userSamplePtr[update.CallbackQuery.From.ID][market] = count + 1
@@ -180,9 +181,75 @@ func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
 	}
 
 	var keyboard = tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", wildberries)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", megamarket)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить товар в избранное ⭐", addToFavorite)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, buffer.String())
+
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
+
+	t.bot.Send(message)
+}
+
+func (t *TgBot) favoriteMode(update *tgbotapi.Update) {
+	var favoriteModeInstruct = []string{
+		"*Ты перешёл в режим 'Избранное' ⭐\n\n",
+		"- Здесь можно найти все товары, которые тебе когда-то понравились ❤️\n\n",
+		"❓*Как его использовать?*\n\n",
+		"- Необходимо нажать на кнопку 'Следующий товар', если хочешь перейти к следующему товару ➡️\n\n",
+		"- Если хочешь удалить товар из выборки, то нажми на кнопку 'Удалить товар' 🗑️\n\n",
+		"- Если хочешь вернуться в меню, нажми 'Меню' 📋\n\n",
+		"*К товарам!* 👇",
+	}
+
+	buffer := bytes.Buffer{}
+
+	for _, instruct := range favoriteModeInstruct {
+		buffer.WriteString(instruct)
+	}
+
+	var keyboard = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Смотреть товары 📦", showFavoriteProducts)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, buffer.String())
+
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
+
+	t.bot.Send(message)
+}
+
+func (t *TgBot) showFavoriteProducts(update *tgbotapi.Update) {
+	// Add here code of getting the favorite products
+
+	// var productDesc = []string{
+	// 	fmt.Sprintf("*✔️ %s* 📦\n\n", sample.Products.Name),
+	// 	fmt.Sprintf("*⚙️ Производитель:*  %s\n\n", sample.Products[count].Brand),
+	// 	fmt.Sprintf("*🏷️ Цена без скидки:*  %d %s\n\n", sample.Products[count].Price.BasePrice, sample.Currency),
+	// 	fmt.Sprintf("*🏷️ Цена со скидкой:*  %d %s\n\n", sample.Products[count].Price.DiscountPrice, sample.Currency),
+	// 	fmt.Sprintf("*🔖 Скидка:*  %d%%\n\n", sample.Products[count].Price.Discount),
+	// 	fmt.Sprintf("*🔗 Поставщик:* %s\n\n", sample.Products[count].Supplier),
+	// 	fmt.Sprintf("*📦 Товар:*\n%s\n\n", sample.Products[count].Links.URL),
+	// 	fmt.Sprintf("*Выборка товаров:*\n%s\n\n", sample.SampleLink),
+	// }
+
+	var productDesc = []string{}
+
+	buffer := bytes.Buffer{}
+
+	for _, desc := range productDesc {
+		buffer.WriteString(desc)
+	}
+
+	var keyboard = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData("Следующий товар ➡️", nextProduct)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Удалить товар 🗑️", deleteProduct)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
