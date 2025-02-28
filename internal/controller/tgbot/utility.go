@@ -18,17 +18,17 @@ const (
 	showRequest = "show-request"
 
 	// Button's data name.
-	bestPriceModeData    = "best-price"
-	startSearch          = "start-search"
-	favoriteModeData     = "favourite-products"
-	trackedModeData      = "tracked-products"
-	marketSetterMode     = "markets-setter"
-	productSetter        = "product-setter"
-	productsIter         = "products-iter"
-	addToFavorite        = "add-favorite"
-	showFavoriteProducts = "show-favorite-products"
-	deleteProduct        = "delete-product"
-	nextProduct          = "next-product"
+	bestPriceModeData     = "best-price"
+	startSearch           = "start-search"
+	favoriteModeData      = "favourite-products"
+	trackedModeData       = "tracked-products"
+	marketSetterMode      = "markets-setter"
+	productSetter         = "product-setter"
+	productsIter          = "products-iter"
+	addToFavorite         = "add-favorite"
+	showFavoriteProducts  = "show-favorite-products"
+	deleteFavoriteProduct = "delete-favorite-product"
+	nextProduct           = "next-product"
 )
 
 // addMarket adds the market to the request for the current ChatID.

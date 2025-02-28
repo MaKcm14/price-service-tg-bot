@@ -20,6 +20,9 @@ type TgBot struct {
 
 	userSample map[int64]map[string]entities.ProductSample
 
+	userFavoriteLastProds map[int]struct{}
+	lastFavoriteProd      int
+
 	userRequest map[int64]dto.ProductRequest
 
 	userInteractor services.UserActions
@@ -39,16 +42,17 @@ func New(token string, logger *slog.Logger, interactor services.UserActions, api
 	}
 
 	return TgBot{
-		bot:                  bot,
-		logger:               logger,
-		userLastAction:       make(map[int64]string, 10000),
-		userRequest:          make(map[int64]dto.ProductRequest, 10000),
-		userSamplePtr:        make(map[int64]map[string]int, 10000),
-		userSample:           make(map[int64]map[string]entities.ProductSample),
-		userLastMarketChoice: make(map[int64]string),
-		userInteractor:       interactor,
-		api:                  api,
-		repo:                 repo,
+		bot:                   bot,
+		logger:                logger,
+		userLastAction:        make(map[int64]string, 10000),
+		userRequest:           make(map[int64]dto.ProductRequest, 10000),
+		userSamplePtr:         make(map[int64]map[string]int, 10000),
+		userSample:            make(map[int64]map[string]entities.ProductSample),
+		userLastMarketChoice:  make(map[int64]string),
+		userFavoriteLastProds: make(map[int]struct{}),
+		userInteractor:        interactor,
+		api:                   api,
+		repo:                  repo,
 	}, nil
 }
 
@@ -82,6 +86,8 @@ func (t *TgBot) Run() {
 			switch update.CallbackQuery.Data {
 			case menuAction:
 				t.menu(update.CallbackQuery.From.ID)
+				t.lastFavoriteProd = 0
+				t.userFavoriteLastProds = make(map[int]struct{})
 
 			case bestPriceModeData:
 				t.bestPriceMode(&update)
@@ -114,6 +120,10 @@ func (t *TgBot) Run() {
 				t.addFavoriteProduct(&update)
 
 			case showFavoriteProducts:
+				t.showFavoriteProducts(&update)
+
+			case deleteFavoriteProduct:
+				t.deleteFavoriteProduct(&update)
 
 			}
 		}

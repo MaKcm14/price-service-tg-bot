@@ -137,6 +137,7 @@ func (t *TgBot) startSearch(update *tgbotapi.Update) {
 	t.bot.Send(message)
 }
 
+// productsIter defines the logic of iterating the user's products sample.
 func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
 	t.userLastMarketChoice[update.CallbackQuery.From.ID] = market
 
@@ -227,6 +228,7 @@ func (t *TgBot) addFavoriteProduct(update *tgbotapi.Update) {
 	t.bot.Send(message)
 }
 
+// favoriteMode defines the entry-point to the favorite mode.
 func (t *TgBot) favoriteMode(update *tgbotapi.Update) {
 	t.userLastAction[update.CallbackQuery.From.ID] = favoriteModeData
 
@@ -259,21 +261,60 @@ func (t *TgBot) favoriteMode(update *tgbotapi.Update) {
 	t.bot.Send(message)
 }
 
+// showFavoriteProducts shows the user's favorite products.
 func (t *TgBot) showFavoriteProducts(update *tgbotapi.Update) {
-	// Add here code of getting the favorite products
+	const op = "tgbot.show-favorite-products"
 
-	// var productDesc = []string{
-	// 	fmt.Sprintf("*✔️ %s* 📦\n\n", sample.Products.Name),
-	// 	fmt.Sprintf("*⚙️ Производитель:*  %s\n\n", sample.Products[count].Brand),
-	// 	fmt.Sprintf("*🏷️ Цена без скидки:*  %d %s\n\n", sample.Products[count].Price.BasePrice, sample.Currency),
-	// 	fmt.Sprintf("*🏷️ Цена со скидкой:*  %d %s\n\n", sample.Products[count].Price.DiscountPrice, sample.Currency),
-	// 	fmt.Sprintf("*🔖 Скидка:*  %d%%\n\n", sample.Products[count].Price.Discount),
-	// 	fmt.Sprintf("*🔗 Поставщик:* %s\n\n", sample.Products[count].Supplier),
-	// 	fmt.Sprintf("*📦 Товар:*\n%s\n\n", sample.Products[count].Links.URL),
-	// 	fmt.Sprintf("*Выборка товаров:*\n%s\n\n", sample.SampleLink),
-	// }
+	var product epkg.Product
 
-	var productDesc = []string{}
+	products, err := t.repo.GetFavoriteProducts(context.Background(), update.CallbackQuery.From.ID)
+
+	if err != nil {
+		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+
+		response := "*Упс... Похоже, произошла ошибка 😞*"
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+		)
+
+		var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, response)
+
+		message.ReplyMarkup = keyboard
+		message.ParseMode = markDown
+
+		t.bot.Send(message)
+		return
+	} else if len(t.userFavoriteLastProds) == len(products) {
+		response := "*Товаров больше нет 📦*"
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+		)
+
+		var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, response)
+
+		message.ReplyMarkup = keyboard
+		message.ParseMode = markDown
+
+		t.bot.Send(message)
+		return
+	}
+
+	for key, val := range products {
+		if _, flagExist := t.userFavoriteLastProds[key]; !flagExist {
+			product = val
+			t.lastFavoriteProd = key
+			t.userFavoriteLastProds[key] = struct{}{}
+			break
+		}
+	}
+
+	var productDesc = []string{
+		fmt.Sprintf("*✔️ %s* 📦\n\n", product.Name),
+		fmt.Sprintf("*⚙️ Производитель:*  %s\n\n", product.Brand),
+		fmt.Sprintf("*🏷️ Цена без скидки:*  %d\n\n", product.Price.BasePrice),
+		fmt.Sprintf("*🔗 Поставщик:* %s\n\n", product.Supplier),
+		fmt.Sprintf("*📦 Товар:*\n%s\n\n", product.Links.URL),
+	}
 
 	buffer := bytes.Buffer{}
 
@@ -282,12 +323,40 @@ func (t *TgBot) showFavoriteProducts(update *tgbotapi.Update) {
 	}
 
 	var keyboard = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("Следующий товар ➡️", nextProduct)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Удалить товар 🗑️", deleteProduct)),
+		tgbotapi.NewInlineKeyboardButtonData("Следующий товар ➡️", showFavoriteProducts)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Удалить товар 🗑️", deleteFavoriteProduct)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
 	var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, buffer.String())
+
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
+
+	t.bot.Send(message)
+}
+
+// deleteFavoriteProduct defines the logic of the deleting the user's favorite product.
+func (t *TgBot) deleteFavoriteProduct(update *tgbotapi.Update) {
+	const op = "tgbot.delete-favorite-product"
+
+	var response = "*Товар был успешно удалён 🗑️*"
+
+	err := t.repo.DeleteFavoriteProducts(context.Background(), update.CallbackQuery.From.ID, []int{t.lastFavoriteProd})
+
+	if err != nil {
+		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		response = "*Упс... Похоже, произошла ошибка 😞*"
+	} else {
+		delete(t.userFavoriteLastProds, t.lastFavoriteProd)
+	}
+
+	var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, response)
+
+	var keyboard = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData("Следующий товар ➡️", showFavoriteProducts)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
 
 	message.ReplyMarkup = keyboard
 	message.ParseMode = markDown

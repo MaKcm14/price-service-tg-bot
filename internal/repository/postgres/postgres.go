@@ -118,8 +118,15 @@ func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (
 		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
 	}
 
-	res, err := p.pool.Query(ctx, "SELECT f.product_id, f.product_name, f.product_link, f.product_image_link, f.base_price, f.product_brand, f.supplier"+
-		"FROM users as u JOIN favorites as f ON f.user_id=u.id and u.id=$1", chatID)
+	id, err := p.GetUserID(ctx, chatID)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return nil, ErrQueryExec
+	}
+
+	res, err := p.pool.Query(ctx, "SELECT f.product_id, f.product_name, f.product_link, f.base_price, f.product_brand, f.supplier "+
+		"FROM users as u JOIN favorites as f ON f.user_id=u.id and u.id=$1", id)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
@@ -131,10 +138,15 @@ func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (
 		var product entities.Product
 		var productID int
 
-		res.Scan(&productID, &product.Name, &product.Links.URL, &product.Links.ImageLink,
+		res.Scan(&productID, &product.Name, &product.Links.URL,
 			&product.Price.BasePrice, &product.Brand, &product.Supplier)
 
 		prods[productID] = product
+	}
+
+	if res.Err() != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, res.Err()))
+		return nil, ErrQueryExec
 	}
 
 	err = p.cache.AddUserFavoriteProducts(ctx, chatID, prods)

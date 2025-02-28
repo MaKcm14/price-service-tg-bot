@@ -48,10 +48,10 @@ func (r RedisRepo) IsKeyExpired(ctx context.Context, tgID int64) (bool, error) {
 		r.log.Error(fmt.Sprintf("error of redis interaction: %s: %s", op, err))
 		return false, ErrOfRedisRequest
 	} else if flagExists > 0 {
-		return true, nil
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // FlushUserCache cleares the user's cache.
