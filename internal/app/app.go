@@ -46,7 +46,7 @@ func NewService() Service {
 		panic(err)
 	}
 
-	bot, err := tgbot.New(config.TgBotToken, log, services.NewUserInteractor(log, dbConn), api.NewPriceServiceApi(config.Socket, log))
+	bot, err := tgbot.New(config.TgBotToken, log, services.NewUserInteractor(log, dbConn), api.NewPriceServiceApi(config.Socket, log), dbConn)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of starting the bot: %v", err))

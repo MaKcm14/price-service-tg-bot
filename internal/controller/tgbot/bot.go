@@ -15,16 +15,20 @@ type TgBot struct {
 
 	userLastAction map[int64]string
 
-	userSamplePtr map[int64]map[string]int
-	userSample    map[int64]map[string]entities.ProductSample
+	userSamplePtr        map[int64]map[string]int
+	userLastMarketChoice map[int64]string
+
+	userSample map[int64]map[string]entities.ProductSample
 
 	userRequest map[int64]dto.ProductRequest
 
 	userInteractor services.UserActions
 	api            services.ApiInteractor
+
+	repo services.Repository
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserActions, api services.ApiInteractor) (TgBot, error) {
+func New(token string, logger *slog.Logger, interactor services.UserActions, api services.ApiInteractor, repo services.Repository) (TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -35,14 +39,16 @@ func New(token string, logger *slog.Logger, interactor services.UserActions, api
 	}
 
 	return TgBot{
-		bot:            bot,
-		logger:         logger,
-		userLastAction: make(map[int64]string, 10000),
-		userRequest:    make(map[int64]dto.ProductRequest, 10000),
-		userSamplePtr:  make(map[int64]map[string]int, 10000),
-		userSample:     make(map[int64]map[string]entities.ProductSample),
-		userInteractor: interactor,
-		api:            api,
+		bot:                  bot,
+		logger:               logger,
+		userLastAction:       make(map[int64]string, 10000),
+		userRequest:          make(map[int64]dto.ProductRequest, 10000),
+		userSamplePtr:        make(map[int64]map[string]int, 10000),
+		userSample:           make(map[int64]map[string]entities.ProductSample),
+		userLastMarketChoice: make(map[int64]string),
+		userInteractor:       interactor,
+		api:                  api,
+		repo:                 repo,
 	}, nil
 }
 
@@ -103,6 +109,9 @@ func (t *TgBot) Run() {
 
 			case favoriteModeData:
 				t.favoriteMode(&update)
+
+			case addToFavorite:
+				t.addFavoriteProduct(&update)
 
 			case showFavoriteProducts:
 

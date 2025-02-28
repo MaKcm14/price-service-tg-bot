@@ -24,7 +24,7 @@ type RedisRepo struct {
 
 func New(ctx context.Context, logger *slog.Logger) (RedisRepo, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "172.25.116.111:6379", // DEBUG: change it to the localhost.
+		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})

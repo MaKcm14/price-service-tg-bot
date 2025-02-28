@@ -65,6 +65,27 @@ func (p PostgreSQLRepo) IsUserExists(ctx context.Context, chatID int64) (bool, e
 	return rows.Next(), nil
 }
 
+// GetUserID returns the user ID of the current user.
+func (p PostgreSQLRepo) GetUserID(ctx context.Context, chatID int64) (int, error) {
+	const op = "postgres.get-user-id"
+
+	var id int
+
+	res, err := p.pool.Query(ctx, "SELECT id FROM users WHERE telegram_id=$1", chatID)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of %s: %s", op, err))
+		return -1, ErrQueryExec
+	}
+	defer res.Close()
+
+	if res.Next() {
+		res.Scan(&id)
+	}
+
+	return id, nil
+}
+
 // AddUser adds the user with the chatID to the DB.
 func (p PostgreSQLRepo) AddUser(ctx context.Context, chatID int64) error {
 	const op = "postgres.adding-user"
@@ -134,7 +155,7 @@ func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (
 // AddFavoriteProducts adds the new products to the favorites for the current user.
 func (p PostgreSQLRepo) AddFavoriteProducts(ctx context.Context, chatID int64, products []entities.Product) error {
 	const op = "postgres.add-favorite-products"
-	const query = "INSERT INTO favorites (product_name, product_link, product_image_link, base_price, product_brand, supplier, user_id)\n"
+	const query = "INSERT INTO favorites (product_name, product_link, base_price, product_brand, supplier, user_id)\n"
 
 	err := p.cache.FlushUserCache(ctx, chatID)
 
@@ -143,9 +164,16 @@ func (p PostgreSQLRepo) AddFavoriteProducts(ctx context.Context, chatID int64, p
 	}
 
 	for _, product := range products {
-		_, err := p.pool.Exec(ctx, fmt.Sprintf("%sVALUES (%s, %s, %s, %d, %s, %s, %d)", query,
-			product.Name, product.Links.URL, product.Links.ImageLink, product.Price.BasePrice,
-			product.Brand, product.Supplier, chatID))
+		id, err := p.GetUserID(ctx, chatID)
+
+		if err != nil {
+			p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+			return ErrQueryExec
+		}
+
+		_, err = p.pool.Exec(ctx, fmt.Sprintf("%sVALUES ('%s', '%s', %d, '%s', '%s', %d)", query,
+			product.Name, product.Links.URL, product.Price.BasePrice,
+			product.Brand, product.Supplier, id))
 
 		if err != nil {
 			p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))

@@ -2,12 +2,16 @@ package tgbot
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
+
+	epkg "github.com/MaKcm14/price-service/pkg/entities"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -134,6 +138,8 @@ func (t *TgBot) startSearch(update *tgbotapi.Update) {
 }
 
 func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
+	t.userLastMarketChoice[update.CallbackQuery.From.ID] = market
+
 	if t.userLastAction[update.CallbackQuery.From.ID] != productsIter {
 		var choiceText = "*Выбери, откуда ты хочешь получить товар* 👇"
 		var keyboard = tgbotapi.NewInlineKeyboardMarkup(
@@ -197,7 +203,28 @@ func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
 
 // addFavoriteProduct adds the product to the favorites.
 func (t *TgBot) addFavoriteProduct(update *tgbotapi.Update) {
+	const op = "tgbot.add-favorite-product"
 
+	var response = "*Товар был успешно добавлен! ⭐*"
+
+	market := t.userLastMarketChoice[update.CallbackQuery.From.ID]
+	count := t.userSamplePtr[update.CallbackQuery.From.ID][market] - 1
+	sample := t.userSample[update.CallbackQuery.From.ID][market]
+
+	product := sample.Products[count]
+
+	err := t.repo.AddFavoriteProducts(context.Background(), update.CallbackQuery.From.ID, []epkg.Product{product})
+
+	if err != nil {
+		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		response = "*Упс... Похоже, произошла ошибка 😞*"
+	}
+
+	var message = tgbotapi.NewMessage(update.CallbackQuery.From.ID, response)
+
+	message.ParseMode = markDown
+
+	t.bot.Send(message)
 }
 
 func (t *TgBot) favoriteMode(update *tgbotapi.Update) {
