@@ -1,0 +1,5 @@
+time=2025-02-28T09:59:43.501+03:00 level=INFO msg="main application's configuring begun"
+time=2025-02-28T09:59:43.503+03:00 level=INFO msg="connecting to the db begun"
+time=2025-02-28T09:59:43.791+03:00 level=INFO msg="initializing the bot begun"
+time=2025-02-28T09:59:44.022+03:00 level=INFO msg="starting the bot and the other services"
+time=2025-02-28T09:59:44.022+03:00 level=INFO msg="starting the bot begun"
