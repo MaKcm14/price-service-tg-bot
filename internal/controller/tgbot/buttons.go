@@ -195,6 +195,11 @@ func (t *TgBot) productsIter(update *tgbotapi.Update, market string) {
 	t.bot.Send(message)
 }
 
+// addFavoriteProduct adds the product to the favorites.
+func (t *TgBot) addFavoriteProduct(update *tgbotapi.Update) {
+
+}
+
 func (t *TgBot) favoriteMode(update *tgbotapi.Update) {
 	t.userLastAction[update.CallbackQuery.From.ID] = favoriteModeData
 

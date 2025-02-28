@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/MaKcm14/price-service/pkg/entities"
 	"github.com/redis/go-redis/v9"
@@ -51,6 +52,34 @@ func (r RedisRepo) IsKeyExpired(ctx context.Context, tgID int64) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// FlushUserCache cleares the user's cache.
+func (r RedisRepo) FlushUserCache(ctx context.Context, tgID int64) error {
+	const op = "redis.flush-user-cache"
+
+	_, err := r.conn.Del(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID)).Result()
+
+	if err != nil {
+		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return ErrOfRedisRequest
+	}
+
+	return nil
+}
+
+// SetTTL sets the TTL for the current user's key.
+func (r RedisRepo) SetTTL(ctx context.Context, tgID int64) error {
+	const op = "redis.set-ttl"
+
+	_, err := r.conn.Expire(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), time.Duration(time.Hour*72)).Result()
+
+	if err != nil {
+		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return ErrOfRedisRequest
+	}
+
+	return nil
 }
 
 // GetUserFavoriteProducts gets the favorite user's products from cache (cache-hit) and error if

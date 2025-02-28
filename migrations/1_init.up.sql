@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS favorites (
 	product_image_link VARCHAR(600) UNIQUE NOT NULL,
 	base_price INT NOT NULL,
 	product_brand VARCHAR(100) NOT NULL,
+	supplier VARCHAR(100) NOT NULL,
 	user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );
 
