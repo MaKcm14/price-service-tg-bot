@@ -8,28 +8,32 @@ import (
 )
 
 type (
-	// RepoValidator defines the check-actions.
-	RepoValidator interface {
-		IsUserExists(ctx context.Context, chatID int64) (bool, error)
+	// Validator defines the repository check-actions.
+	Validator interface {
+		IsUserExists(ctx context.Context, tgID int64) (bool, error)
 	}
 
-	// RepoUpdater defines the modify-actions.
-	RepoUpdater interface {
-		AddUser(ctx context.Context, chatID int64) error
-		AddFavoriteProducts(ctx context.Context, chatID int64, products []entities.Product) error
-		DeleteFavoriteProducts(ctx context.Context, chatID int64, products []int) error
+	// Updater defines the repository-storage modify-actions.
+	Updater interface {
+		AddUser(ctx context.Context, tgID int64) error
+		AddFavoriteProducts(ctx context.Context, tgID int64, products []entities.Product) error
+
+		DeleteFavoriteProducts(ctx context.Context, tgID int64, products []int) error
 	}
 
-	RepoAdder interface {
-		GetFavoriteProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error)
+	// Getter defines the repository-storage read operations.
+	Getter interface {
+		GetFavoriteProducts(ctx context.Context, tgID int64) (map[int]entities.Product, error)
 	}
 
+	// Repository defines the repository-storage object abstraction.
 	Repository interface {
-		RepoValidator
-		RepoUpdater
-		RepoAdder
+		Validator
+		Updater
+		Getter
 	}
 
+	// ApiInteractor defines the repository price-service-api object abstraction.
 	ApiInteractor interface {
 		GetProductsByBestPrice(request dto.ProductRequest) (map[string]entities.ProductSample, error)
 	}

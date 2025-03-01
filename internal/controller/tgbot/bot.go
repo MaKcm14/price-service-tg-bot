@@ -25,13 +25,13 @@ type TgBot struct {
 
 	userRequest map[int64]dto.ProductRequest
 
-	userInteractor services.UserActions
+	userInteractor services.UserConfiger
 	api            services.ApiInteractor
 
 	repo services.Repository
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserActions, api services.ApiInteractor, repo services.Repository) (TgBot, error) {
+func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)

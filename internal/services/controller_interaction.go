@@ -1,7 +1,6 @@
 package services
 
-type (
-	UserActions interface {
-		IdentifyUser(chatID int64) error
-	}
-)
+// UserConfiger defines the user's configs actions.
+type UserConfiger interface {
+	IdentifyUser(chatID int64) error
+}
