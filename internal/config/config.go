@@ -1,22 +1,21 @@
-package conf
+package config
 
 import (
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/joho/godotenv"
 )
 
 // Settings defines the main application's settings.
 type Settings struct {
-	TgBotToken string
-	DSN        string
-	Socket     string
+	TgBotToken         string
+	DSN                string
+	PriceServiceSocket string
 }
 
-func NewSettings(log *slog.Logger) Settings {
-	const errVar = "check this var is set or its value is not empty and try again"
+func NewSettings(log *slog.Logger, opts ...ConfigOpt) Settings {
+	var set Settings
 
 	if err := godotenv.Load("../../.env"); err != nil {
 		errRecord := fmt.Sprintf("error of loading the .env file: %v", err)
@@ -24,30 +23,14 @@ func NewSettings(log *slog.Logger) Settings {
 		panic(errRecord)
 	}
 
-	token := os.Getenv("BOT_TOKEN")
+	for _, opt := range opts {
+		err := opt(&set)
 
-	if len(token) == 0 {
-		log.Error(fmt.Sprintf("error of BOT_TOKEN var: %v", errVar))
-		panic(fmt.Sprintf("error of BOT_TOKEN var: %v", errVar))
+		if err != nil {
+			log.Error(err.Error())
+			panic(err)
+		}
 	}
 
-	dsn := os.Getenv("DSN")
-
-	if len(dsn) == 0 {
-		log.Error(fmt.Sprintf("error of DSN var: %v", errVar))
-		panic(fmt.Sprintf("error of DSN var: %v", errVar))
-	}
-
-	socket := os.Getenv("SOCKET")
-
-	if len(socket) == 0 {
-		log.Error(fmt.Sprintf("error of SOCKET var: %v", errVar))
-		panic(fmt.Sprintf("error of SOCKET var: %v", errVar))
-	}
-
-	return Settings{
-		TgBotToken: token,
-		DSN:        dsn,
-		Socket:     socket,
-	}
+	return set
 }

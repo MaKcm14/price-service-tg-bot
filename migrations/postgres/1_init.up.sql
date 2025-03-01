@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
 	id SERIAL PRIMARY KEY,
-	telegram_id INT UNIQUE NOT NULL CHECK (telegram_id > 0)
+	telegram_id BIGINT UNIQUE NOT NULL CHECK (telegram_id > 0)
 );
 
 CREATE TABLE IF NOT EXISTS favorites (
