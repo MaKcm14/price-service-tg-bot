@@ -18,7 +18,7 @@ import (
 // Service defines the configured application that is ready to be started.
 type Service struct {
 	logger *slog.Logger
-	bot    tgbot.TgBot
+	bot    *tgbot.TgBot
 }
 
 func NewService() *Service {
@@ -61,7 +61,7 @@ func mustSetLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(mainLogFile, &slog.HandlerOptions{Level: slog.LevelInfo}))
 }
 
-func mustSetBot(log *slog.Logger, config conf.Settings) tgbot.TgBot {
+func mustSetBot(log *slog.Logger, config conf.Settings) *tgbot.TgBot {
 	log.Info("connecting to the db begun")
 
 	dbConn, err := postgres.New(context.Background(), config.DSN, log)

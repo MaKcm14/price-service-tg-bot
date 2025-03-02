@@ -14,7 +14,7 @@ type (
 	}
 
 	// Updater defines the repository-storage modify-actions.
-	Updater interface {
+	Modificator interface {
 		AddUser(ctx context.Context, tgID int64) error
 		AddFavoriteProducts(ctx context.Context, tgID int64, products []entities.Product) error
 
@@ -29,7 +29,7 @@ type (
 	// Repository defines the repository-storage object abstraction.
 	Repository interface {
 		Validator
-		Updater
+		Modificator
 		Getter
 	}
 

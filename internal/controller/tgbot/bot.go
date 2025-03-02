@@ -3,56 +3,51 @@ package tgbot
 import (
 	"log/slog"
 
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
-	"github.com/MaKcm14/price-service/pkg/entities"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type TgBot struct {
-	bot    *tgbotapi.BotAPI
-	logger *slog.Logger
-
-	userLastAction map[int64]string
-
-	userSamplePtr        map[int64]map[string]int
-	userLastMarketChoice map[int64]string
-
-	userSample map[int64]map[string]entities.ProductSample
-
-	userFavoriteLastProds map[int]struct{}
-	lastFavoriteProd      int
-
-	userRequest map[int64]dto.ProductRequest
-
-	userInteractor services.UserConfiger
-	api            services.ApiInteractor
-
-	repo services.Repository
+type tgBotConfigs struct {
+	usersConfig *usersConfigs
+	bot         *tgbotapi.BotAPI
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (TgBot, error) {
+func newTgBotConfigs(bot *tgbotapi.BotAPI, usersConfig *usersConfigs) tgBotConfigs {
+	return tgBotConfigs{
+		bot:         bot,
+		usersConfig: usersConfig,
+	}
+}
+
+// TgBot defines the bot's logic.
+type TgBot struct {
+	logger  *slog.Logger
+	botConf tgBotConfigs
+
+	userInteractor services.UserConfiger
+
+	favorite  favoriteMode
+	bestPrice bestPriceMode
+}
+
+func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)
 
 	if err != nil {
 		logger.Error("error of initializing the tg-bot")
-		return TgBot{}, err
+		return &TgBot{}, err
 	}
 
-	return TgBot{
-		bot:                   bot,
-		logger:                logger,
-		userLastAction:        make(map[int64]string, 10000),
-		userRequest:           make(map[int64]dto.ProductRequest, 10000),
-		userSamplePtr:         make(map[int64]map[string]int, 10000),
-		userSample:            make(map[int64]map[string]entities.ProductSample),
-		userLastMarketChoice:  make(map[int64]string),
-		userFavoriteLastProds: make(map[int]struct{}),
-		userInteractor:        interactor,
-		api:                   api,
-		repo:                  repo,
+	botConf := newTgBotConfigs(bot, newUsersConfigs())
+
+	return &TgBot{
+		botConf:        botConf,
+		logger:         logger,
+		userInteractor: interactor,
+		favorite:       newFavoriteMode(logger, botConf, repo),
+		bestPrice:      newBestPriceMode(logger, botConf, api),
 	}, nil
 }
 
@@ -63,67 +58,71 @@ func (t *TgBot) Run() {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 30
 
-	updates := t.bot.GetUpdatesChan(updateConfig)
+	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
 		if update.Message != nil {
+			chatID := update.Message.Chat.ID
+
 			switch update.Message.Command() {
 			case "start":
-				t.start(&update)
+				t.start(chatID)
 
 			case menuAction:
-				t.menu(update.Message.Chat.ID)
+				t.menu(chatID)
 
 			default:
-				if action, flagExist := t.userLastAction[update.Message.Chat.ID]; flagExist &&
+				if action, flagExist := t.botConf.usersConfig.usersLastAction[chatID]; flagExist &&
 					action == productSetter {
-					t.setQuery(&update)
-					t.showRequest(&update)
+					t.bestPrice.setQuery(&update)
+					t.bestPrice.showRequest(chatID)
 				}
 			}
 
 		} else if update.CallbackQuery != nil {
+			chatID := update.CallbackQuery.Message.Chat.ID
+
 			switch update.CallbackQuery.Data {
 			case menuAction:
-				t.menu(update.CallbackQuery.From.ID)
-				t.lastFavoriteProd = 0
-				t.userFavoriteLastProds = make(map[int]struct{})
+				t.menu(chatID)
+				t.botConf.usersConfig.favoriteConfig.lastFavoriteProdID[chatID] = 0
+				t.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID] = make(map[int]struct{})
 
 			case bestPriceModeData:
-				t.bestPriceMode(&update)
+				t.bestPrice.bestPriceMode(chatID)
 
 			case marketSetterMode:
-				t.marketSetterMode(&update)
+				t.bestPrice.marketSetterMode(chatID)
 
 			case wildberries, megamarket:
-				if action, flagExist := t.userLastAction[update.CallbackQuery.From.ID]; flagExist &&
+				if action, flagExist := t.botConf.usersConfig.usersLastAction[update.CallbackQuery.From.ID]; flagExist &&
 					action == productsIter {
-					t.productsIter(&update, update.CallbackQuery.Data)
+					t.bestPrice.productsIter(chatID, update.CallbackQuery.Data)
 					continue
 				}
 
-				t.addMarket(&update)
+				t.bestPrice.addMarket(&update)
 
 			case productSetter:
-				t.productSetter(&update)
+				t.bestPrice.productSetter(chatID)
 
 			case startSearch:
-				t.startSearch(&update)
+				t.bestPrice.startSearch(chatID)
 
 			case productsIter:
-				t.productsIter(&update, "")
+				t.bestPrice.productsIter(chatID, "")
 
 			case favoriteModeData:
-				t.favoriteMode(&update)
+				t.favorite.favoriteMode(chatID)
 
 			case addToFavorite:
-				t.addFavoriteProduct(&update)
+				t.favorite.addFavoriteProduct(chatID)
 
 			case showFavoriteProducts:
-				t.showFavoriteProducts(&update)
+				t.favorite.showFavoriteProducts(chatID)
 
 			case deleteFavoriteProduct:
-				t.deleteFavoriteProduct(&update)
+				t.favorite.deleteFavoriteProduct(chatID)
 
 			}
 		}

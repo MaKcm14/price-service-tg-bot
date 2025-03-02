@@ -2,7 +2,7 @@ package tgbot
 
 import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/MaKcm14/price-service/pkg/entities"
 )
 
 const (
@@ -31,23 +31,50 @@ const (
 	nextProduct           = "next-product"
 )
 
-// addMarket adds the market to the request for the current ChatID.
-func (t *TgBot) addMarket(update *tgbotapi.Update) {
-	request := t.userRequest[update.CallbackQuery.From.ID]
+// usersSampleConfig defines the logic of the current users' products sample interaction and
+// iteration.
+type usersSampleConfig struct {
+	usersSamplePtr        map[int64]map[string]int
+	usersLastMarketChoice map[int64]string
+	usersSample           map[int64]map[string]entities.ProductSample
+}
 
-	request.Markets[update.CallbackQuery.Data] = update.CallbackQuery.Data
-
-	t.userRequest[update.CallbackQuery.From.ID] = dto.ProductRequest{
-		Mode:    request.Mode,
-		Markets: request.Markets,
+func newUsersSampleConfig() usersSampleConfig {
+	return usersSampleConfig{
+		usersSamplePtr:        make(map[int64]map[string]int),
+		usersLastMarketChoice: make(map[int64]string),
+		usersSample:           make(map[int64]map[string]entities.ProductSample),
 	}
 }
 
-// setQuery sets the product query request for the current ChatID.
-func (t *TgBot) setQuery(update *tgbotapi.Update) {
-	request := t.userRequest[update.Message.Chat.ID]
+// usersFavoritesConfig defines the logic of the current users' favorite products interaction and
+// iteration.
+type usersFavoritesConfig struct {
+	usersFavoriteLastProdsID map[int64]map[int]struct{}
+	lastFavoriteProdID       map[int64]int
+}
 
-	request.Query = update.Message.Text
+func newUsersFavoritesConfig() usersFavoritesConfig {
+	return usersFavoritesConfig{
+		usersFavoriteLastProdsID: make(map[int64]map[int]struct{}),
+		lastFavoriteProdID:       make(map[int64]int),
+	}
+}
 
-	t.userRequest[update.Message.Chat.ID] = request
+// usersConfigs defines the logic of the user's using configurations.
+type usersConfigs struct {
+	usersLastAction map[int64]string
+	usersRequest    map[int64]dto.ProductRequest
+
+	sampleConfig   usersSampleConfig
+	favoriteConfig usersFavoritesConfig
+}
+
+func newUsersConfigs() *usersConfigs {
+	return &usersConfigs{
+		usersLastAction: make(map[int64]string),
+		usersRequest:    make(map[int64]dto.ProductRequest),
+		sampleConfig:    newUsersSampleConfig(),
+		favoriteConfig:  newUsersFavoritesConfig(),
+	}
 }
