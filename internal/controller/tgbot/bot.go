@@ -8,21 +8,21 @@ import (
 )
 
 type tgBotConfigs struct {
-	usersConfig *usersConfigs
-	bot         *tgbotapi.BotAPI
+	users map[int64]userConfig
+	bot   *tgbotapi.BotAPI
 }
 
-func newTgBotConfigs(bot *tgbotapi.BotAPI, usersConfig *usersConfigs) tgBotConfigs {
-	return tgBotConfigs{
-		bot:         bot,
-		usersConfig: usersConfig,
+func newTgBotConfigs(bot *tgbotapi.BotAPI) *tgBotConfigs {
+	return &tgBotConfigs{
+		bot:   bot,
+		users: make(map[int64]userConfig),
 	}
 }
 
 // TgBot defines the bot's logic.
 type TgBot struct {
 	logger  *slog.Logger
-	botConf tgBotConfigs
+	botConf *tgBotConfigs
 
 	userInteractor services.UserConfiger
 
@@ -40,7 +40,7 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		return &TgBot{}, err
 	}
 
-	botConf := newTgBotConfigs(bot, newUsersConfigs())
+	botConf := newTgBotConfigs(bot)
 
 	return &TgBot{
 		botConf:        botConf,
@@ -65,15 +65,15 @@ func (t *TgBot) Run() {
 			chatID := update.Message.Chat.ID
 
 			switch update.Message.Command() {
-			case "start":
+			case startAction:
 				t.start(chatID)
 
 			case menuAction:
 				t.menu(chatID)
 
 			default:
-				if action, flagExist := t.botConf.usersConfig.usersLastAction[chatID]; flagExist &&
-					action == productSetter {
+				if user, flagExist := t.botConf.users[chatID]; flagExist &&
+					user.lastAction == productSetter {
 					t.bestPrice.setQuery(&update)
 					t.bestPrice.showRequest(chatID)
 				}
@@ -85,8 +85,11 @@ func (t *TgBot) Run() {
 			switch update.CallbackQuery.Data {
 			case menuAction:
 				t.menu(chatID)
-				t.botConf.usersConfig.favoriteConfig.lastFavoriteProdID[chatID] = 0
-				t.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID] = make(map[int]struct{})
+
+				newConfig := t.botConf.users[chatID]
+				newConfig.favorites = newUserFavoritesConfig()
+
+				t.botConf.users[chatID] = newConfig
 
 			case bestPriceModeData:
 				t.bestPrice.bestPriceMode(chatID)
@@ -95,8 +98,8 @@ func (t *TgBot) Run() {
 				t.bestPrice.marketSetterMode(chatID)
 
 			case wildberries, megamarket:
-				if action, flagExist := t.botConf.usersConfig.usersLastAction[update.CallbackQuery.From.ID]; flagExist &&
-					action == productsIter {
+				if user, flagExist := t.botConf.users[chatID]; flagExist &&
+					user.lastAction == productsIter {
 					t.bestPrice.productsIter(chatID, update.CallbackQuery.Data)
 					continue
 				}

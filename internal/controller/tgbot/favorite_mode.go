@@ -12,13 +12,13 @@ import (
 )
 
 type favoriteMode struct {
-	botConf tgBotConfigs
+	botConf *tgBotConfigs
 	logger  *slog.Logger
 
 	repo services.Repository
 }
 
-func newFavoriteMode(log *slog.Logger, bot tgBotConfigs, repo services.Repository) favoriteMode {
+func newFavoriteMode(log *slog.Logger, bot *tgBotConfigs, repo services.Repository) favoriteMode {
 	return favoriteMode{
 		botConf: bot,
 		logger:  log,
@@ -32,9 +32,9 @@ func (f *favoriteMode) addFavoriteProduct(chatID int64) {
 
 	var response = "*Товар был успешно добавлен! ⭐*"
 
-	market := f.botConf.usersConfig.sampleConfig.usersLastMarketChoice[chatID]
-	count := f.botConf.usersConfig.sampleConfig.usersSamplePtr[chatID][market] - 1
-	sample := f.botConf.usersConfig.sampleConfig.usersSample[chatID][market]
+	market := f.botConf.users[chatID].sample.lastMarketChoice
+	count := f.botConf.users[chatID].sample.samplePtr[market] - 1
+	sample := f.botConf.users[chatID].sample.sample[market]
 
 	product := sample.Products[count]
 
@@ -54,7 +54,14 @@ func (f *favoriteMode) addFavoriteProduct(chatID int64) {
 
 // favoriteMode defines the entry-point to the favorite mode.
 func (f *favoriteMode) favoriteMode(chatID int64) {
-	f.botConf.usersConfig.usersLastAction[chatID] = favoriteModeData
+	if _, flagExist := f.botConf.users[chatID]; !flagExist {
+		f.botConf.users[chatID] = *newUserConfig()
+	}
+
+	var newConfig userConfig = f.botConf.users[chatID]
+	newConfig.lastAction = favoriteModeData
+
+	f.botConf.users[chatID] = newConfig
 
 	var favoriteModeInstruct = []string{
 		"*Ты перешёл в режим Избранное* ⭐\n\n",
@@ -108,7 +115,7 @@ func (f *favoriteMode) showFavoriteProducts(chatID int64) {
 
 		f.botConf.bot.Send(message)
 		return
-	} else if len(f.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID]) == len(products) {
+	} else if len(f.botConf.users[chatID].favorites.favoriteLastProdsID) == len(products) {
 		response := "*Товаров больше нет 📦*"
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
@@ -124,10 +131,16 @@ func (f *favoriteMode) showFavoriteProducts(chatID int64) {
 	}
 
 	for key, val := range products {
-		if _, flagExist := f.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID][key]; !flagExist {
+		if _, flagExist := f.botConf.users[chatID].favorites.favoriteLastProdsID[key]; !flagExist {
 			product = val
-			f.botConf.usersConfig.favoriteConfig.lastFavoriteProdID[chatID] = key
-			f.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID][key] = struct{}{}
+
+			newConfig := f.botConf.users[chatID]
+
+			newConfig.favorites.lastFavoriteProdID = key
+			newConfig.favorites.favoriteLastProdsID[key] = struct{}{}
+
+			f.botConf.users[chatID] = newConfig
+
 			break
 		}
 	}
@@ -166,14 +179,17 @@ func (f *favoriteMode) deleteFavoriteProduct(chatID int64) {
 
 	var response = "*Товар был успешно удалён 🗑️*"
 
-	err := f.repo.DeleteFavoriteProducts(context.Background(), chatID, []int{f.botConf.usersConfig.favoriteConfig.lastFavoriteProdID[chatID]})
+	err := f.repo.DeleteFavoriteProducts(context.Background(), chatID, []int{f.botConf.users[chatID].favorites.lastFavoriteProdID})
 
 	if err != nil {
 		f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		response = "*Упс... Похоже, произошла ошибка 😞*"
 	} else {
-		delete(f.botConf.usersConfig.favoriteConfig.usersFavoriteLastProdsID[chatID],
-			f.botConf.usersConfig.favoriteConfig.lastFavoriteProdID[chatID])
+		newConfig := f.botConf.users[chatID]
+
+		delete(newConfig.favorites.favoriteLastProdsID, newConfig.favorites.lastFavoriteProdID)
+
+		f.botConf.users[chatID] = newConfig
 	}
 
 	var message = tgbotapi.NewMessage(chatID, response)

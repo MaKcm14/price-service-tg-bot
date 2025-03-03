@@ -14,6 +14,7 @@ const (
 	wildberries = "wildberries"
 
 	// Command's name.
+	startAction = "start"
 	menuAction  = "menu"
 	showRequest = "show-request"
 
@@ -31,50 +32,46 @@ const (
 	nextProduct           = "next-product"
 )
 
-// usersSampleConfig defines the logic of the current users' products sample interaction and
+// userSampleConfig defines the logic of the current user's products sample interaction and
 // iteration.
-type usersSampleConfig struct {
-	usersSamplePtr        map[int64]map[string]int
-	usersLastMarketChoice map[int64]string
-	usersSample           map[int64]map[string]entities.ProductSample
+type userSampleConfig struct {
+	samplePtr        map[string]int
+	lastMarketChoice string
+	sample           map[string]entities.ProductSample
 }
 
-func newUsersSampleConfig() usersSampleConfig {
-	return usersSampleConfig{
-		usersSamplePtr:        make(map[int64]map[string]int),
-		usersLastMarketChoice: make(map[int64]string),
-		usersSample:           make(map[int64]map[string]entities.ProductSample),
+func newUserSampleConfig() userSampleConfig {
+	return userSampleConfig{
+		samplePtr: make(map[string]int),
+		sample:    make(map[string]entities.ProductSample),
 	}
 }
 
-// usersFavoritesConfig defines the logic of the current users' favorite products interaction and
+// userFavoritesConfig defines the logic of the current user's favorite products interaction and
 // iteration.
-type usersFavoritesConfig struct {
-	usersFavoriteLastProdsID map[int64]map[int]struct{}
-	lastFavoriteProdID       map[int64]int
+type userFavoritesConfig struct {
+	favoriteLastProdsID map[int]struct{}
+	lastFavoriteProdID  int
 }
 
-func newUsersFavoritesConfig() usersFavoritesConfig {
-	return usersFavoritesConfig{
-		usersFavoriteLastProdsID: make(map[int64]map[int]struct{}),
-		lastFavoriteProdID:       make(map[int64]int),
+func newUserFavoritesConfig() userFavoritesConfig {
+	return userFavoritesConfig{
+		favoriteLastProdsID: make(map[int]struct{}),
 	}
 }
 
-// usersConfigs defines the logic of the user's using configurations.
-type usersConfigs struct {
-	usersLastAction map[int64]string
-	usersRequest    map[int64]dto.ProductRequest
+// userConfig defines the main configs of the bot's user.
+type userConfig struct {
+	lastAction string
+	request    dto.ProductRequest
 
-	sampleConfig   usersSampleConfig
-	favoriteConfig usersFavoritesConfig
+	sample    userSampleConfig
+	favorites userFavoritesConfig
 }
 
-func newUsersConfigs() *usersConfigs {
-	return &usersConfigs{
-		usersLastAction: make(map[int64]string),
-		usersRequest:    make(map[int64]dto.ProductRequest),
-		sampleConfig:    newUsersSampleConfig(),
-		favoriteConfig:  newUsersFavoritesConfig(),
+func newUserConfig() *userConfig {
+	return &userConfig{
+		sample:    newUserSampleConfig(),
+		favorites: newUserFavoritesConfig(),
 	}
 }
