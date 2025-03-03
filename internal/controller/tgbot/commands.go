@@ -10,14 +10,10 @@ import (
 // start is the action on the /start command.
 func (t *TgBot) start(chatID int64) {
 	if _, flagExist := t.botConf.users[chatID]; !flagExist {
-		t.botConf.users[chatID] = *newUserConfig()
+		t.botConf.users[chatID] = newUserConfig()
 	}
 
-	var newConfig userConfig = t.botConf.users[chatID]
-
-	newConfig.lastAction = startAction
-
-	t.botConf.users[chatID] = newConfig
+	t.botConf.users[chatID].lastAction = startAction
 
 	var greets = []string{
 		"*Привет, меня зовут Скрудж, и я очень люблю экономить время людей!* 🦆\n\n",
@@ -47,15 +43,11 @@ func (t *TgBot) start(chatID int64) {
 // menu is the action on the /menu command or pressing the menu-button.
 func (t *TgBot) menu(chatID int64) {
 	if _, flagExist := t.botConf.users[chatID]; !flagExist {
-		t.botConf.users[chatID] = *newUserConfig()
+		t.botConf.users[chatID] = newUserConfig()
 	}
 
-	var newConfig userConfig = t.botConf.users[chatID]
-
-	newConfig.lastAction = menuAction
-	newConfig.request = dto.ProductRequest{}
-
-	t.botConf.users[chatID] = newConfig
+	t.botConf.users[chatID].lastAction = menuAction
+	t.botConf.users[chatID].request = dto.ProductRequest{}
 
 	var menu = []string{
 		"*Вот, с чем я могу тебе помочь:*\n\n",
@@ -86,4 +78,6 @@ func (t *TgBot) menu(chatID int64) {
 	message.ReplyMarkup = keyboardMenu
 
 	t.botConf.bot.Send(message)
+
+	t.botConf.users[chatID].favorites = newUserFavoritesConfig()
 }

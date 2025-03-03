@@ -8,14 +8,14 @@ import (
 )
 
 type tgBotConfigs struct {
-	users map[int64]userConfig
+	users map[int64]*userConfig
 	bot   *tgbotapi.BotAPI
 }
 
 func newTgBotConfigs(bot *tgbotapi.BotAPI) *tgBotConfigs {
 	return &tgBotConfigs{
 		bot:   bot,
-		users: make(map[int64]userConfig),
+		users: make(map[int64]*userConfig),
 	}
 }
 
@@ -85,11 +85,6 @@ func (t *TgBot) Run() {
 			switch update.CallbackQuery.Data {
 			case menuAction:
 				t.menu(chatID)
-
-				newConfig := t.botConf.users[chatID]
-				newConfig.favorites = newUserFavoritesConfig()
-
-				t.botConf.users[chatID] = newConfig
 
 			case bestPriceModeData:
 				t.bestPrice.bestPriceMode(chatID)

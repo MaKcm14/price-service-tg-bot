@@ -55,13 +55,10 @@ func (f *favoriteMode) addFavoriteProduct(chatID int64) {
 // favoriteMode defines the entry-point to the favorite mode.
 func (f *favoriteMode) favoriteMode(chatID int64) {
 	if _, flagExist := f.botConf.users[chatID]; !flagExist {
-		f.botConf.users[chatID] = *newUserConfig()
+		f.botConf.users[chatID] = newUserConfig()
 	}
 
-	var newConfig userConfig = f.botConf.users[chatID]
-	newConfig.lastAction = favoriteModeData
-
-	f.botConf.users[chatID] = newConfig
+	f.botConf.users[chatID].lastAction = favoriteModeData
 
 	var favoriteModeInstruct = []string{
 		"*Ты перешёл в режим Избранное* ⭐\n\n",
@@ -133,14 +130,8 @@ func (f *favoriteMode) showFavoriteProducts(chatID int64) {
 	for key, val := range products {
 		if _, flagExist := f.botConf.users[chatID].favorites.favoriteLastProdsID[key]; !flagExist {
 			product = val
-
-			newConfig := f.botConf.users[chatID]
-
-			newConfig.favorites.lastFavoriteProdID = key
-			newConfig.favorites.favoriteLastProdsID[key] = struct{}{}
-
-			f.botConf.users[chatID] = newConfig
-
+			f.botConf.users[chatID].favorites.lastFavoriteProdID = key
+			f.botConf.users[chatID].favorites.favoriteLastProdsID[key] = struct{}{}
 			break
 		}
 	}
@@ -185,11 +176,8 @@ func (f *favoriteMode) deleteFavoriteProduct(chatID int64) {
 		f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		response = "*Упс... Похоже, произошла ошибка 😞*"
 	} else {
-		newConfig := f.botConf.users[chatID]
-
-		delete(newConfig.favorites.favoriteLastProdsID, newConfig.favorites.lastFavoriteProdID)
-
-		f.botConf.users[chatID] = newConfig
+		delete(f.botConf.users[chatID].favorites.favoriteLastProdsID,
+			f.botConf.users[chatID].favorites.lastFavoriteProdID)
 	}
 
 	var message = tgbotapi.NewMessage(chatID, response)

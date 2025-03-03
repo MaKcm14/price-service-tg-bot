@@ -30,15 +30,11 @@ func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInter
 // bestPriceMode is the action on the pressing the best-price button.
 func (b *bestPriceMode) bestPriceMode(chatID int64) {
 	if _, flagExist := b.botConf.users[chatID]; !flagExist {
-		b.botConf.users[chatID] = *newUserConfig()
+		b.botConf.users[chatID] = newUserConfig()
 	}
 
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.lastAction = bestPriceModeData
-	newConfig.request = dto.NewProductRequest(entities.BestPriceMode)
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].lastAction = bestPriceModeData
+	b.botConf.users[chatID].request = dto.NewProductRequest(entities.BestPriceMode)
 
 	var priceRangeInstructs = []string{
 		"*Ты перешёл в режим поиска Best Price 📊 *\n\n",
@@ -70,11 +66,7 @@ func (b *bestPriceMode) bestPriceMode(chatID int64) {
 
 // marketSetterMode sets the markets.
 func (b *bestPriceMode) marketSetterMode(chatID int64) {
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.lastAction = marketSetterMode
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].lastAction = marketSetterMode
 
 	var keyboardMarketSetter = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
@@ -93,11 +85,7 @@ func (b *bestPriceMode) marketSetterMode(chatID int64) {
 
 // productSetter defines the logic of setting the product's name.
 func (b *bestPriceMode) productSetter(chatID int64) {
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.lastAction = productSetter
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].lastAction = productSetter
 
 	var message = tgbotapi.NewMessage(chatID,
 		"*Введи точное название товара, по которому будет осуществляться поиск* 📦")
@@ -108,11 +96,7 @@ func (b *bestPriceMode) productSetter(chatID int64) {
 
 // startSearch defines the logic of searching the products using the finished request.
 func (b *bestPriceMode) startSearch(chatID int64) {
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.lastAction = startSearch
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].lastAction = startSearch
 
 	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
 
@@ -136,11 +120,7 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 		return
 	}
 
-	newConfig = b.botConf.users[chatID]
-
-	newConfig.sample.sample = products
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].sample.sample = products
 
 	markets := make(map[string]int)
 
@@ -148,11 +128,7 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 		markets[market] = 0
 	}
 
-	newConfig = b.botConf.users[chatID]
-
-	newConfig.sample.samplePtr = markets
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].sample.samplePtr = markets
 
 	var iterInstrs = []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
@@ -183,11 +159,7 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 
 // productsIter defines the logic of iterating the user's products sample.
 func (b *bestPriceMode) productsIter(chatID int64, market string) {
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.sample.lastMarketChoice = market
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].sample.lastMarketChoice = market
 
 	if b.botConf.users[chatID].lastAction != productsIter {
 		var choiceText = "*Выбери, откуда ты хочешь получить товар* 👇"
@@ -203,11 +175,7 @@ func (b *bestPriceMode) productsIter(chatID int64, market string) {
 
 		b.botConf.bot.Send(message)
 
-		newConfig = b.botConf.users[chatID]
-
-		newConfig.lastAction = productsIter
-
-		b.botConf.users[chatID] = newConfig
+		b.botConf.users[chatID].lastAction = productsIter
 
 		return
 	}
@@ -220,11 +188,7 @@ func (b *bestPriceMode) productsIter(chatID int64, market string) {
 
 	sample := b.botConf.users[chatID].sample.sample[market]
 
-	newConfig = b.botConf.users[chatID]
-
-	newConfig.sample.samplePtr[market] = count + 1
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].sample.samplePtr[market] = count + 1
 
 	var productDesc = []string{
 		fmt.Sprintf("*✔️ %s* 📦\n\n", sample.Products[count].Name),
@@ -261,11 +225,7 @@ func (b *bestPriceMode) productsIter(chatID int64, market string) {
 
 // showRequest shows the finished request that will use to get the products.
 func (b *bestPriceMode) showRequest(chatID int64) {
-	var newConfig userConfig = b.botConf.users[chatID]
-
-	newConfig.lastAction = showRequest
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].lastAction = showRequest
 
 	var request = "✔*Запрос готов! 📝*\n\n*✔Маркеты поиска 🛒*\n"
 
@@ -297,16 +257,12 @@ func (b *bestPriceMode) addMarket(update *tgbotapi.Update) {
 
 	request := b.botConf.users[chatID].request
 
-	request.Markets[update.CallbackQuery.Data] = update.CallbackQuery.Data
+	b.botConf.users[chatID].request.Markets[update.CallbackQuery.Data] = update.CallbackQuery.Data
 
-	newConfig := b.botConf.users[chatID]
-
-	newConfig.request = dto.ProductRequest{
+	b.botConf.users[chatID].request = dto.ProductRequest{
 		Mode:    request.Mode,
 		Markets: request.Markets,
 	}
-
-	b.botConf.users[chatID] = newConfig
 }
 
 // setQuery sets the product query request for the current ChatID.
@@ -317,9 +273,5 @@ func (b *bestPriceMode) setQuery(update *tgbotapi.Update) {
 
 	request.Query = update.Message.Text
 
-	newConfig := b.botConf.users[chatID]
-
-	newConfig.request = request
-
-	b.botConf.users[chatID] = newConfig
+	b.botConf.users[chatID].request = request
 }
