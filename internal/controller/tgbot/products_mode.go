@@ -6,12 +6,19 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 )
 
 // productsMode defines the main logic of the products mode processing.
 type productsMode struct {
 	botConf *tgBotConfigs
+}
+
+func newProductsMode(bot *tgBotConfigs) productsMode {
+	return productsMode{
+		botConf: bot,
+	}
 }
 
 // nextProduct defines the logic of getting the next product.
@@ -63,7 +70,6 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 
 // productsIter defines the logic of iterating the user's products sample.
 func (p *productsMode) productsIter(chatID int64, market string) {
-
 	if p.botConf.users[chatID].lastAction != productsIter {
 		choiceText := "*Выбери, откуда ты хочешь получить товар* 👇"
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -96,7 +102,11 @@ func (p *productsMode) showRequest(chatID int64) {
 		request += fmt.Sprintf("• %s\n", market)
 	}
 
-	request += fmt.Sprintf("\n*Товар: %s* 📦\n\n", p.botConf.users[chatID].request.Query)
+	request += fmt.Sprintf("\n*Товар: %s* 📦\n", p.botConf.users[chatID].request.Query)
+
+	if p.botConf.users[chatID].request.Mode == entities.BestPriceMode {
+		request += "\nДиапазон цен: неограничено 🎚️\n\n"
+	}
 
 	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
 

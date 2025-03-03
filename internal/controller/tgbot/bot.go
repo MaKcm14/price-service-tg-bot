@@ -37,6 +37,7 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		logger:         logger,
 		userInteractor: interactor,
 		favorite:       newFavoriteMode(logger, botConf, repo),
+		prodsMode:      newProductsMode(botConf),
 		bestPrice:      newBestPriceMode(logger, botConf, api),
 	}, nil
 }

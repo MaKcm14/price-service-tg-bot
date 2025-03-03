@@ -3,6 +3,7 @@ package tgbot
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -96,7 +97,7 @@ func (b *bestPriceMode) productSetter(chatID int64) {
 }
 
 // errorOfSearch defines the logic of searching's error processing.
-func (b *bestPriceMode) errorOfSearch(chatID int64, err error) {
+func (b *bestPriceMode) errorOfSearchMode(chatID int64, err error) {
 	var errText = "*Упс... Похоже, произошла ошибка 😞*"
 
 	if errors.Is(err, api.ErrApiInteraction) {
@@ -115,7 +116,7 @@ func (b *bestPriceMode) errorOfSearch(chatID int64, err error) {
 }
 
 // searchReply defines the logic of searching's reply.
-func (b *bestPriceMode) searchReply(chatID int64) {
+func (b *bestPriceMode) searchModeReply(chatID int64) {
 	iterInstrs := []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
 		"❓*Как использовать поиск?*\n",
@@ -145,12 +146,15 @@ func (b *bestPriceMode) searchReply(chatID int64) {
 
 // startSearch defines the logic of searching the products using the finished request.
 func (b *bestPriceMode) startSearch(chatID int64) {
+	const op = "tgbot.best-price-search"
+
 	b.botConf.users[chatID].lastAction = startSearch
 
 	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
 
 	if err != nil {
-		b.errorOfSearch(chatID, err)
+		b.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		b.errorOfSearchMode(chatID, err)
 		return
 	}
 
@@ -164,5 +168,5 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 
 	b.botConf.users[chatID].sample.samplePtr = markets
 
-	b.searchReply(chatID)
+	b.searchModeReply(chatID)
 }
