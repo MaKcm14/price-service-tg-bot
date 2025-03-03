@@ -5,11 +5,12 @@ import (
 	"errors"
 	"log/slog"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // bestPriceMode defines the logic of best price mode processing.
@@ -36,7 +37,7 @@ func (b *bestPriceMode) bestPriceMode(chatID int64) {
 	b.botConf.users[chatID].lastAction = bestPriceModeData
 	b.botConf.users[chatID].request = dto.NewProductRequest(entities.BestPriceMode)
 
-	var priceRangeInstructs = []string{
+	priceRangeInstructs := []string{
 		"*Ты перешёл в режим поиска Best Price 📊 *\n\n",
 		"❓*Как его использовать?*\n",
 		"- Необходимо нажать на кнопки тех маркетов, в которых ты хочешь искать\n\n",
@@ -51,12 +52,12 @@ func (b *bestPriceMode) bestPriceMode(chatID int64) {
 		buffer.WriteString(instruct)
 	}
 
-	var keyboardMode = tgbotapi.NewInlineKeyboardMarkup(
+	keyboardMode := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать маркеты 🛒", marketSetterMode)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
-	var message = tgbotapi.NewMessage(chatID, buffer.String())
+	message := tgbotapi.NewMessage(chatID, buffer.String())
 
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMode
@@ -68,14 +69,14 @@ func (b *bestPriceMode) bestPriceMode(chatID int64) {
 func (b *bestPriceMode) marketSetterMode(chatID int64) {
 	b.botConf.users[chatID].lastAction = marketSetterMode
 
-	var keyboardMarketSetter = tgbotapi.NewInlineKeyboardMarkup(
+	keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
-	var message = tgbotapi.NewMessage(chatID, "*Выбери маркеты, в которых будет производиться поиск* 👇")
+	message := tgbotapi.NewMessage(chatID, "*Выбери маркеты, в которых будет производиться поиск* 👇")
 
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMarketSetter
@@ -87,50 +88,35 @@ func (b *bestPriceMode) marketSetterMode(chatID int64) {
 func (b *bestPriceMode) productSetter(chatID int64) {
 	b.botConf.users[chatID].lastAction = productSetter
 
-	var message = tgbotapi.NewMessage(chatID,
+	message := tgbotapi.NewMessage(chatID,
 		"*Введи точное название товара, по которому будет осуществляться поиск* 📦")
 
 	message.ParseMode = markDown
 	b.botConf.bot.Send(message)
 }
 
-// startSearch defines the logic of searching the products using the finished request.
-func (b *bestPriceMode) startSearch(chatID int64) {
-	b.botConf.users[chatID].lastAction = startSearch
+// errorOfSearch defines the logic of searching's error processing.
+func (b *bestPriceMode) errorOfSearch(chatID int64, err error) {
+	var errText = "*Упс... Похоже, произошла ошибка 😞*"
 
-	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
-
-	if err != nil {
-		var errText = "*Упс... Похоже, произошла ошибка 😞*"
-
-		if errors.Is(err, api.ErrApiInteraction) {
-			errText += "\n\n*Что-то не так с парсером... \nПопробуй отключить VPN или попробовать позже ⏳*"
-		}
-
-		var message = tgbotapi.NewMessage(chatID, errText)
-		var keyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
-
-		message.ReplyMarkup = keyboard
-		message.ParseMode = markDown
-
-		b.botConf.bot.Send(message)
-
-		return
+	if errors.Is(err, api.ErrApiInteraction) {
+		errText += "\n\n*Что-то не так с парсером... \nПопробуй отключить VPN или попробовать позже ⏳*"
 	}
 
-	b.botConf.users[chatID].sample.sample = products
+	message := tgbotapi.NewMessage(chatID, errText)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
 
-	markets := make(map[string]int)
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
 
-	for _, market := range b.botConf.users[chatID].request.Markets {
-		markets[market] = 0
-	}
+	b.botConf.bot.Send(message)
+}
 
-	b.botConf.users[chatID].sample.samplePtr = markets
-
-	var iterInstrs = []string{
+// searchReply defines the logic of searching's reply.
+func (b *bestPriceMode) searchReply(chatID int64) {
+	iterInstrs := []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
 		"❓*Как использовать поиск?*\n",
 		"✔ Нажимай на тот маркет, товар которого хочешь посмотреть\n",
@@ -144,15 +130,39 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 		buffer.WriteString(instruct)
 	}
 
-	var keyboard = tgbotapi.NewInlineKeyboardMarkup(
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Смотреть товары 📦", productsIter)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
-	var message = tgbotapi.NewMessage(chatID, buffer.String())
+	message := tgbotapi.NewMessage(chatID, buffer.String())
 
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboard
 
 	b.botConf.bot.Send(message)
+}
+
+// startSearch defines the logic of searching the products using the finished request.
+func (b *bestPriceMode) startSearch(chatID int64) {
+	b.botConf.users[chatID].lastAction = startSearch
+
+	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
+
+	if err != nil {
+		b.errorOfSearch(chatID, err)
+		return
+	}
+
+	b.botConf.users[chatID].sample.sample = products
+
+	markets := make(map[string]int)
+
+	for _, market := range b.botConf.users[chatID].request.Markets {
+		markets[market] = 0
+	}
+
+	b.botConf.users[chatID].sample.samplePtr = markets
+
+	b.searchReply(chatID)
 }

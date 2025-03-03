@@ -3,8 +3,9 @@ package tgbot
 import (
 	"log/slog"
 
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 )
 
 // TgBot defines the bot's logic.

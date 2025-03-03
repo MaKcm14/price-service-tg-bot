@@ -1,25 +1,26 @@
 package tgbot
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/price-service/pkg/entities"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
 	// markDown sets the Markdown parse mode.
 	markDown = "Markdown"
 
-	// Consts set the markets for the request
+	// the markets for the request.
 	megamarket  = "megamarket"
 	wildberries = "wildberries"
 
-	// Command's name.
+	// command's name.
 	startAction = "start"
 	menuAction  = "menu"
 	showRequest = "show-request"
 
-	// Button's data name.
+	// button's data name.
 	bestPriceModeData     = "best-price"
 	startSearch           = "start-search"
 	favoriteModeData      = "favourite-products"
@@ -77,6 +78,7 @@ func newUserConfig() *userConfig {
 	}
 }
 
+// tgBotConfigs defines the main logic of the bot and users' configuration.
 type tgBotConfigs struct {
 	users map[int64]*userConfig
 	bot   *tgbotapi.BotAPI
