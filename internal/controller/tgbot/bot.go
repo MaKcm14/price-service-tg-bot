@@ -7,18 +7,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type tgBotConfigs struct {
-	users map[int64]*userConfig
-	bot   *tgbotapi.BotAPI
-}
-
-func newTgBotConfigs(bot *tgbotapi.BotAPI) *tgBotConfigs {
-	return &tgBotConfigs{
-		bot:   bot,
-		users: make(map[int64]*userConfig),
-	}
-}
-
 // TgBot defines the bot's logic.
 type TgBot struct {
 	logger  *slog.Logger
@@ -27,6 +15,7 @@ type TgBot struct {
 	userInteractor services.UserConfiger
 
 	favorite  favoriteMode
+	prodsMode productsMode
 	bestPrice bestPriceMode
 }
 
@@ -74,8 +63,8 @@ func (t *TgBot) Run() {
 			default:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productSetter {
-					t.bestPrice.setQuery(&update)
-					t.bestPrice.showRequest(chatID)
+					t.prodsMode.setQuery(&update)
+					t.prodsMode.showRequest(chatID)
 				}
 			}
 
@@ -95,11 +84,11 @@ func (t *TgBot) Run() {
 			case wildberries, megamarket:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productsIter {
-					t.bestPrice.productsIter(chatID, update.CallbackQuery.Data)
+					t.prodsMode.productsIter(chatID, update.CallbackQuery.Data)
 					continue
 				}
 
-				t.bestPrice.addMarket(&update)
+				t.prodsMode.addMarket(&update)
 
 			case productSetter:
 				t.bestPrice.productSetter(chatID)
@@ -108,7 +97,7 @@ func (t *TgBot) Run() {
 				t.bestPrice.startSearch(chatID)
 
 			case productsIter:
-				t.bestPrice.productsIter(chatID, "")
+				t.prodsMode.productsIter(chatID, "")
 
 			case favoriteModeData:
 				t.favorite.favoriteMode(chatID)

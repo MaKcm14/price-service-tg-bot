@@ -11,6 +11,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// favoriteMode defines the logic of the favorite mode processing.
 type favoriteMode struct {
 	botConf *tgBotConfigs
 	logger  *slog.Logger

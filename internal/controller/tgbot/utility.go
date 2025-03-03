@@ -3,6 +3,7 @@ package tgbot
 import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/price-service/pkg/entities"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
@@ -73,5 +74,17 @@ func newUserConfig() *userConfig {
 	return &userConfig{
 		sample:    newUserSampleConfig(),
 		favorites: newUserFavoritesConfig(),
+	}
+}
+
+type tgBotConfigs struct {
+	users map[int64]*userConfig
+	bot   *tgbotapi.BotAPI
+}
+
+func newTgBotConfigs(bot *tgbotapi.BotAPI) *tgBotConfigs {
+	return &tgBotConfigs{
+		bot:   bot,
+		users: make(map[int64]*userConfig),
 	}
 }
