@@ -21,16 +21,16 @@ type bestPriceMode struct {
 	api     services.ApiInteractor
 }
 
-func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInteractor) bestPriceMode {
-	return bestPriceMode{
+func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInteractor) *bestPriceMode {
+	return &bestPriceMode{
 		botConf: bot,
 		logger:  log,
 		api:     api,
 	}
 }
 
-// bestPriceMode is the action on the pressing the best-price button.
-func (b *bestPriceMode) bestPriceMode(chatID int64) {
+// mode is the action on the pressing the best-price button.
+func (b *bestPriceMode) mode(chatID int64) {
 	if _, flagExist := b.botConf.users[chatID]; !flagExist {
 		b.botConf.users[chatID] = newUserConfig()
 	}
@@ -62,25 +62,6 @@ func (b *bestPriceMode) bestPriceMode(chatID int64) {
 
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMode
-
-	b.botConf.bot.Send(message)
-}
-
-// marketSetterMode sets the markets.
-func (b *bestPriceMode) marketSetterMode(chatID int64) {
-	b.botConf.users[chatID].lastAction = marketSetterMode
-
-	keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-	)
-
-	message := tgbotapi.NewMessage(chatID, "*Выбери маркеты, в которых будет производиться поиск* 👇")
-
-	message.ParseMode = markDown
-	message.ReplyMarkup = keyboardMarketSetter
 
 	b.botConf.bot.Send(message)
 }
@@ -169,4 +150,15 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 	b.botConf.users[chatID].sample.samplePtr = markets
 
 	b.searchModeReply(chatID)
+}
+
+// setRequest sets the product query request for the current ChatID.
+func (p *bestPriceMode) setRequest(update *tgbotapi.Update) {
+	var chatID = update.Message.Chat.ID
+
+	request := p.botConf.users[chatID].request
+
+	request.Query = update.Message.Text
+
+	p.botConf.users[chatID].request = request
 }

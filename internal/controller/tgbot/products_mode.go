@@ -21,6 +21,25 @@ func newProductsMode(bot *tgBotConfigs) productsMode {
 	}
 }
 
+// marketSetterMode sets the markets.
+func (b *productsMode) marketSetterMode(chatID int64) {
+	b.botConf.users[chatID].lastAction = marketSetterMode
+
+	keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	message := tgbotapi.NewMessage(chatID, "*Выбери маркеты, в которых будет производиться поиск* 👇")
+
+	message.ParseMode = markDown
+	message.ReplyMarkup = keyboardMarketSetter
+
+	b.botConf.bot.Send(message)
+}
+
 // nextProduct defines the logic of getting the next product.
 func (p *productsMode) nextProduct(chatID int64, market string) {
 	p.botConf.users[chatID].sample.lastMarketChoice = market
@@ -105,7 +124,7 @@ func (p *productsMode) showRequest(chatID int64) {
 	request += fmt.Sprintf("\n*Товар: %s* 📦\n", p.botConf.users[chatID].request.Query)
 
 	if p.botConf.users[chatID].request.Mode == entities.BestPriceMode {
-		request += "\nДиапазон цен: неограничено 🎚️\n\n"
+		request += "\nДиапазон цен: минимально возможные цены 🎚️\n\n"
 	}
 
 	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
@@ -136,15 +155,4 @@ func (p *productsMode) addMarket(update *tgbotapi.Update) {
 		Mode:    request.Mode,
 		Markets: request.Markets,
 	}
-}
-
-// setQuery sets the product query request for the current ChatID.
-func (p *productsMode) setQuery(update *tgbotapi.Update) {
-	var chatID = update.Message.Chat.ID
-
-	request := p.botConf.users[chatID].request
-
-	request.Query = update.Message.Text
-
-	p.botConf.users[chatID].request = request
 }

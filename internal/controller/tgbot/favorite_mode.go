@@ -38,6 +38,10 @@ func (f *favoriteMode) addFavoriteProduct(chatID int64) {
 	count := f.botConf.users[chatID].sample.samplePtr[market] - 1
 	sample := f.botConf.users[chatID].sample.sample[market]
 
+	if count < 0 {
+		return
+	}
+
 	product := sample.Products[count]
 
 	err := f.repo.AddFavoriteProducts(context.Background(), chatID, []entities.Product{product})
@@ -91,7 +95,7 @@ func (f *favoriteMode) favoriteMode(chatID int64) {
 	f.botConf.bot.Send(message)
 }
 
-// showProduct shows the favorite products
+// showProduct shows the favorite products.
 func (f *favoriteMode) showProduct(chatID int64, products map[int]entities.Product) {
 	var product entities.Product
 

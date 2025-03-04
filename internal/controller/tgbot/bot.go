@@ -14,10 +14,11 @@ type TgBot struct {
 	botConf *tgBotConfigs
 
 	userInteractor services.UserConfiger
+	api            services.ApiInteractor
 
 	favorite  favoriteMode
 	prodsMode productsMode
-	bestPrice bestPriceMode
+	search    searchMode
 }
 
 func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
@@ -38,7 +39,7 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		userInteractor: interactor,
 		favorite:       newFavoriteMode(logger, botConf, repo),
 		prodsMode:      newProductsMode(botConf),
-		bestPrice:      newBestPriceMode(logger, botConf, api),
+		api:            api,
 	}, nil
 }
 
@@ -65,7 +66,7 @@ func (t *TgBot) Run() {
 			default:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productSetter {
-					t.prodsMode.setQuery(&update)
+					t.search.setRequest(&update)
 					t.prodsMode.showRequest(chatID)
 				}
 			}
@@ -78,10 +79,11 @@ func (t *TgBot) Run() {
 				t.menu(chatID)
 
 			case bestPriceModeData:
-				t.bestPrice.bestPriceMode(chatID)
+				t.search = newBestPriceMode(t.logger, t.botConf, t.api)
+				t.search.mode(chatID)
 
 			case marketSetterMode:
-				t.bestPrice.marketSetterMode(chatID)
+				t.prodsMode.marketSetterMode(chatID)
 
 			case wildberries, megamarket:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
@@ -93,10 +95,10 @@ func (t *TgBot) Run() {
 				t.prodsMode.addMarket(&update)
 
 			case productSetter:
-				t.bestPrice.productSetter(chatID)
+				t.search.productSetter(chatID)
 
 			case startSearch:
-				t.bestPrice.startSearch(chatID)
+				t.search.startSearch(chatID)
 
 			case productsIter:
 				t.prodsMode.productsIter(chatID, "")

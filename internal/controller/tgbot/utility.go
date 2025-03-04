@@ -21,24 +21,27 @@ const (
 	showRequest = "show-request"
 
 	// button's data name.
-	bestPriceModeData     = "best-price"
-	startSearch           = "start-search"
+	trackedModeData = "tracked-products"
+
+	bestPriceModeData = "best-price"
+
+	startSearch      = "start-search"
+	marketSetterMode = "markets-setter"
+	productSetter    = "product-setter"
+	productsIter     = "products-iter"
+	nextProduct      = "next-product"
+
 	favoriteModeData      = "favourite-products"
-	trackedModeData       = "tracked-products"
-	marketSetterMode      = "markets-setter"
-	productSetter         = "product-setter"
-	productsIter          = "products-iter"
 	addToFavorite         = "add-favorite"
 	showFavoriteProducts  = "show-favorite-products"
 	deleteFavoriteProduct = "delete-favorite-product"
-	nextProduct           = "next-product"
 )
 
 // userSampleConfig defines the logic of the current user's products sample interaction and
 // iteration.
 type userSampleConfig struct {
-	samplePtr        map[string]int
 	lastMarketChoice string
+	samplePtr        map[string]int
 	sample           map[string]entities.ProductSample
 }
 
