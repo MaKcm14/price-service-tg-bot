@@ -44,7 +44,7 @@ PRICE_SERVICE_SOCKET="socket"
 
 ## Examples  
 
-(Provide some usage examples here)
+![Creating the query in the best price mode](https://github.com/MaKcm14/price-service-tg-bot/blob/develop/docs/best-price-1.png) ![Getting the products](https://github.com/MaKcm14/price-service-tg-bot/blob/develop/docs/best-price-2.png) ![Getting the favorite products](https://github.com/MaKcm14/price-service-tg-bot/blob/develop/docs/favrorites-1.png)
 
 ### P.S.  
 
