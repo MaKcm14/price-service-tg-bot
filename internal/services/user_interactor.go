@@ -9,8 +9,7 @@ import (
 // UserInteractor defines the logic of processing the some user's actions.
 type UserInteractor struct {
 	logger *slog.Logger
-
-	repo Repository
+	repo   Repository
 }
 
 func NewUserInteractor(log *slog.Logger, repo Repository) UserInteractor {
