@@ -6,7 +6,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 )
 
@@ -109,38 +108,6 @@ func (p *productsMode) productsIter(chatID int64, market string) {
 	}
 
 	p.nextProduct(chatID, market)
-}
-
-// showRequest shows the finished request that will use to get the products.
-func (p *productsMode) showRequest(chatID int64) {
-	p.botConf.users[chatID].lastAction = showRequest
-
-	request := "✔*Запрос готов! 📝*\n\n*✔Маркеты поиска 🛒*\n"
-
-	for _, market := range p.botConf.users[chatID].request.Markets {
-		request += fmt.Sprintf("• %s\n", market)
-	}
-
-	request += fmt.Sprintf("\n*Товар: %s* 📦\n", p.botConf.users[chatID].request.Query)
-
-	if p.botConf.users[chatID].request.Mode == entities.BestPriceMode {
-		request += "\nДиапазон цен: минимально возможные цены 🎚️\n\n"
-	}
-
-	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
-
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Запустить поиск 🔎", startSearch)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Собрать заново 🔁", bestPriceModeData)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-	)
-
-	message := tgbotapi.NewMessage(chatID, request)
-
-	message.ReplyMarkup = keyboard
-	message.ParseMode = markDown
-
-	p.botConf.bot.Send(message)
 }
 
 // addMarket adds the market to the request for the current ChatID.

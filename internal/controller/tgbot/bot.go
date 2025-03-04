@@ -67,7 +67,7 @@ func (t *TgBot) Run() {
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productSetter {
 					t.search.setRequest(&update)
-					t.prodsMode.showRequest(chatID)
+					t.search.showRequest(chatID)
 				}
 			}
 

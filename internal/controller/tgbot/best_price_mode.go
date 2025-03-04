@@ -152,6 +152,36 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 	b.searchModeReply(chatID)
 }
 
+// showRequest shows the finished request that will use to get the products.
+func (p *bestPriceMode) showRequest(chatID int64) {
+	p.botConf.users[chatID].lastAction = showRequest
+
+	request := "✔*Запрос готов! 📝*\n\n*✔Маркеты поиска 🛒*\n"
+
+	for _, market := range p.botConf.users[chatID].request.Markets {
+		request += fmt.Sprintf("• %s\n", market)
+	}
+
+	request += fmt.Sprintf("\n*Товар: %s* 📦\n", p.botConf.users[chatID].request.Query)
+
+	request += "\n*Диапазон цен:* минимально возможные цены 🎚️\n\n"
+
+	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Запустить поиск 🔎", startSearch)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Собрать заново 🔁", bestPriceModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	message := tgbotapi.NewMessage(chatID, request)
+
+	message.ReplyMarkup = keyboard
+	message.ParseMode = markDown
+
+	p.botConf.bot.Send(message)
+}
+
 // setRequest sets the product query request for the current ChatID.
 func (p *bestPriceMode) setRequest(update *tgbotapi.Update) {
 	var chatID = update.Message.Chat.ID
