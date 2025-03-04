@@ -17,7 +17,6 @@ type (
 	Modificator interface {
 		AddUser(ctx context.Context, tgID int64) error
 		AddFavoriteProducts(ctx context.Context, tgID int64, products []entities.Product) error
-
 		DeleteFavoriteProducts(ctx context.Context, tgID int64, products []int) error
 	}
 

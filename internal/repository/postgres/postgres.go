@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// PostgreSQLRepo defines the logic of the DB interaction.
 type PostgreSQLRepo struct {
 	pool   *pgxpool.Pool
 	logger *slog.Logger
@@ -100,23 +101,11 @@ func (p PostgreSQLRepo) AddUser(ctx context.Context, chatID int64) error {
 	return nil
 }
 
-// GetFavoriteProducts gets the products from the repository.
-func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error) {
-	const op = "postgres.getting-favorite-products"
+// getUserProducts gets the products from the DB for the current chatID.
+func (p PostgreSQLRepo) getUserProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error) {
+	const op = "postgres.getting-products"
 
 	prods := make(map[int]entities.Product, 100)
-
-	if flagExpired, err := p.cache.IsKeyExpired(ctx, chatID); err != nil {
-		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
-	} else if !flagExpired {
-		prods, err := p.cache.GetUserFavoriteProducts(ctx, chatID)
-
-		if err == nil {
-			return prods, nil
-		}
-
-		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
-	}
 
 	id, err := p.GetUserID(ctx, chatID)
 
@@ -149,16 +138,58 @@ func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (
 		return nil, ErrQueryExec
 	}
 
-	err = p.cache.AddUserFavoriteProducts(ctx, chatID, prods)
+	return prods, nil
+}
+
+// updateCacheInfo updates the cache info about the products in the main-cache.
+func (p PostgreSQLRepo) updateCacheInfo(ctx context.Context, chatID int64, prods map[int]entities.Product) error {
+	const op = "postgres.update-cache-info"
+
+	err := p.cache.AddUserFavoriteProducts(ctx, chatID, prods)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return err
+	}
+
+	err = p.cache.SetTTL(ctx, chatID, time.Duration(time.Hour*5))
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 	}
 
-	err = p.cache.SetTTL(ctx, chatID)
+	return err
+}
+
+// GetFavoriteProducts gets the products from the repository.
+func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error) {
+	const op = "postgres.getting-favorite-products"
+
+	if flagExpired, err := p.cache.IsKeyExpired(ctx, chatID); err != nil {
+		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
+	} else if !flagExpired {
+		products, err := p.cache.GetUserFavoriteProducts(ctx, chatID)
+
+		if err == nil {
+			return products, nil
+		}
+		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
+	}
+
+	prods, err := p.getUserProducts(ctx, chatID)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return nil, fmt.Errorf("error of the %s: %w", op, err)
+	}
+
+	if len(prods) != 0 {
+		err = p.updateCacheInfo(ctx, chatID, prods)
+
+		if err != nil {
+			p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+			return nil, fmt.Errorf("error of the %s: %w", op, err)
+		}
 	}
 
 	return prods, nil
@@ -219,7 +250,6 @@ func (p PostgreSQLRepo) DeleteFavoriteProducts(ctx context.Context, chatID int64
 		if i == len(products)-1 {
 			str = fmt.Sprintf("%d)", id)
 		}
-
 		query.WriteString(str)
 	}
 
@@ -233,6 +263,7 @@ func (p PostgreSQLRepo) DeleteFavoriteProducts(ctx context.Context, chatID int64
 	return nil
 }
 
+// Close defines the releasing the resources of the DB.
 func (p PostgreSQLRepo) Close() {
 	p.pool.Close()
 }

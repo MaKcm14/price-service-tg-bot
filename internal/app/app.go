@@ -19,6 +19,8 @@ import (
 type Service struct {
 	logger *slog.Logger
 	bot    *tgbot.TgBot
+
+	dbConn postgres.PostgreSQLRepo
 }
 
 func NewService() *Service {
@@ -32,17 +34,19 @@ func NewService() *Service {
 		conf.ConfigSocket("PRICE_SERVICE_SOCKET"),
 	)
 
-	bot := mustSetBot(log, config)
+	bot, dbConn := mustSetBot(log, config)
 
 	return &Service{
 		logger: log,
 		bot:    bot,
+		dbConn: dbConn,
 	}
 }
 
 // Run starts the application and every connected service.
 func (s *Service) Run() {
 	defer s.logger.Info("the bot was fully STOPPED")
+	defer s.dbConn.Close()
 
 	s.logger.Info("starting the bot and the other services")
 	s.bot.Run()
@@ -61,7 +65,7 @@ func mustSetLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(mainLogFile, &slog.HandlerOptions{Level: slog.LevelInfo}))
 }
 
-func mustSetBot(log *slog.Logger, config conf.Settings) *tgbot.TgBot {
+func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.PostgreSQLRepo) {
 	log.Info("connecting to the db begun")
 
 	dbConn, err := postgres.New(context.Background(), config.DSN, log)
@@ -81,5 +85,5 @@ func mustSetBot(log *slog.Logger, config conf.Settings) *tgbot.TgBot {
 		panic(err)
 	}
 
-	return bot
+	return bot, dbConn
 }

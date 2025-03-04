@@ -69,10 +69,10 @@ func (r RedisRepo) FlushUserCache(ctx context.Context, tgID int64) error {
 }
 
 // SetTTL sets the TTL for the current user's key.
-func (r RedisRepo) SetTTL(ctx context.Context, tgID int64) error {
+func (r RedisRepo) SetTTL(ctx context.Context, tgID int64, ttl time.Duration) error {
 	const op = "redis.set-ttl"
 
-	_, err := r.conn.Expire(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), time.Duration(time.Hour*72)).Result()
+	_, err := r.conn.Expire(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), ttl).Result()
 
 	if err != nil {
 		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
