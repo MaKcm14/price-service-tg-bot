@@ -58,7 +58,7 @@ func (p PostgreSQLRepo) IsUserExists(ctx context.Context, chatID int64) (bool, e
 	rows, err := p.pool.Query(ctx, "SELECT id FROM users WHERE telegram_id=$1", chatID)
 
 	if err != nil {
-		p.logger.Warn(fmt.Sprintf("error of the %v: %v", op, err))
+		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
 		return false, ErrQueryExec
 	}
 	defer rows.Close()
@@ -94,7 +94,7 @@ func (p PostgreSQLRepo) AddUser(ctx context.Context, chatID int64) error {
 	_, err := p.pool.Exec(ctx, "INSERT INTO users (telegram_id) VALUES ($1)", chatID)
 
 	if err != nil {
-		p.logger.Warn(fmt.Sprintf("error of the %v: %v", op, err))
+		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
 		return ErrQueryExec
 	}
 
@@ -166,14 +166,14 @@ func (p PostgreSQLRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (
 	const op = "postgres.getting-favorite-products"
 
 	if flagExpired, err := p.cache.IsKeyExpired(ctx, chatID); err != nil {
-		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 	} else if !flagExpired {
 		products, err := p.cache.GetUserFavoriteProducts(ctx, chatID)
 
 		if err == nil {
 			return products, nil
 		}
-		p.logger.Error(fmt.Sprintf("%s: error of cache: %s", op, err))
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 	}
 
 	prods, err := p.getUserProducts(ctx, chatID)

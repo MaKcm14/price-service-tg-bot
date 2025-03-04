@@ -13,12 +13,13 @@ import (
 )
 
 const (
+	// keyTemplate is the template for every user's key in the cache.
 	keyTemplate = "products:"
 )
 
+// RedisRepo defines the logic of the cache interaction.
 type RedisRepo struct {
-	log *slog.Logger
-
+	log  *slog.Logger
 	conn *redis.Client
 }
 
@@ -41,11 +42,11 @@ func New(ctx context.Context, logger *slog.Logger) (RedisRepo, error) {
 }
 
 // IsKeyExpired checks whether the products-cache for the current user was expired.
-func (r RedisRepo) IsKeyExpired(ctx context.Context, tgID int64) (bool, error) {
+func (r RedisRepo) IsKeyExpired(ctx context.Context, chatID int64) (bool, error) {
 	const op = "redis.check-key-expired"
 
-	if flagExists, err := r.conn.Exists(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID)).Result(); err != nil {
-		r.log.Error(fmt.Sprintf("error of redis interaction: %s: %s", op, err))
+	if flagExists, err := r.conn.Exists(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID)).Result(); err != nil {
+		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		return false, ErrOfRedisRequest
 	} else if flagExists > 0 {
 		return false, nil
@@ -55,10 +56,10 @@ func (r RedisRepo) IsKeyExpired(ctx context.Context, tgID int64) (bool, error) {
 }
 
 // FlushUserCache cleares the user's cache.
-func (r RedisRepo) FlushUserCache(ctx context.Context, tgID int64) error {
+func (r RedisRepo) FlushUserCache(ctx context.Context, chatID int64) error {
 	const op = "redis.flush-user-cache"
 
-	_, err := r.conn.Del(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID)).Result()
+	_, err := r.conn.Del(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID)).Result()
 
 	if err != nil {
 		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
@@ -68,11 +69,11 @@ func (r RedisRepo) FlushUserCache(ctx context.Context, tgID int64) error {
 	return nil
 }
 
-// SetTTL sets the TTL for the current user's key.
-func (r RedisRepo) SetTTL(ctx context.Context, tgID int64, ttl time.Duration) error {
+// SetTTL sets the needed TTL for the current user's key.
+func (r RedisRepo) SetTTL(ctx context.Context, chatID int64, ttl time.Duration) error {
 	const op = "redis.set-ttl"
 
-	_, err := r.conn.Expire(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), ttl).Result()
+	_, err := r.conn.Expire(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID), ttl).Result()
 
 	if err != nil {
 		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
@@ -82,17 +83,17 @@ func (r RedisRepo) SetTTL(ctx context.Context, tgID int64, ttl time.Duration) er
 	return nil
 }
 
-// GetUserFavoriteProducts gets the favorite user's products from cache (cache-hit) and error if
-// there're no products in the cache (cache-miss).
-func (r RedisRepo) GetUserFavoriteProducts(ctx context.Context, tgID int64) (map[int]entities.Product, error) {
+// GetUserFavoriteProducts gets the favorite user's products from the cache (cache-hit)
+// and error if there're no products in the cache (cache-miss).
+func (r RedisRepo) GetUserFavoriteProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error) {
 	const op = "redis.getting-favorite-products"
 
 	res := make(map[int]entities.Product, 100)
 
-	cacheProds, err := r.conn.HGetAll(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID)).Result()
+	cacheProds, err := r.conn.HGetAll(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID)).Result()
 
 	if err != nil {
-		r.log.Error(fmt.Sprintf("error of redis interaction: %s: %s", op, err))
+		r.log.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		return nil, ErrOfRedisRequest
 	}
 
@@ -109,7 +110,7 @@ func (r RedisRepo) GetUserFavoriteProducts(ctx context.Context, tgID int64) (map
 }
 
 // AddUserFavoriteProducts adds the favorite user's products to the hash in the cache.
-func (r RedisRepo) AddUserFavoriteProducts(ctx context.Context, tgID int64, products map[int]entities.Product) error {
+func (r RedisRepo) AddUserFavoriteProducts(ctx context.Context, chatID int64, products map[int]entities.Product) error {
 	const op = "redis.adding-favorite-products"
 
 	addProds := make([]interface{}, 0, len(products))
@@ -119,10 +120,10 @@ func (r RedisRepo) AddUserFavoriteProducts(ctx context.Context, tgID int64, prod
 		addProds = append(addProds, fmt.Sprint(id), string(jsonProdView))
 	}
 
-	res := r.conn.HSet(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), addProds...)
+	res := r.conn.HSet(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID), addProds...)
 
 	if res.Err() != nil {
-		r.log.Error(fmt.Sprintf("error of redis interaction: %s: %s", op, res.Err()))
+		r.log.Error(fmt.Sprintf("error of the %s: %s", op, res.Err()))
 		return ErrOfRedisRequest
 	}
 
@@ -130,7 +131,7 @@ func (r RedisRepo) AddUserFavoriteProducts(ctx context.Context, tgID int64, prod
 }
 
 // DeleteFavoriteProducts deletes the products from the cache for the current user.
-func (r RedisRepo) DeleteFavoriteProducts(ctx context.Context, tgID int64, productIDs []int) error {
+func (r RedisRepo) DeleteFavoriteProducts(ctx context.Context, chatID int64, productIDs []int) error {
 	const op = "redis.deleting-favorite-products"
 
 	ids := make([]string, 0, len(productIDs))
@@ -139,10 +140,10 @@ func (r RedisRepo) DeleteFavoriteProducts(ctx context.Context, tgID int64, produ
 		ids = append(ids, fmt.Sprint(id))
 	}
 
-	_, err := r.conn.HDel(ctx, fmt.Sprintf("%s%d", keyTemplate, tgID), ids...).Result()
+	_, err := r.conn.HDel(ctx, fmt.Sprintf("%s%d", keyTemplate, chatID), ids...).Result()
 
 	if err != nil {
-		r.log.Error("error of redis interaction: %s: %s", op, err)
+		r.log.Error("error of the %s: %s", op, err)
 		return ErrOfRedisRequest
 	}
 

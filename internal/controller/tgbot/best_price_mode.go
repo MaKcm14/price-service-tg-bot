@@ -134,7 +134,7 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
 
 	if err != nil {
-		b.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		b.logger.Warn(fmt.Sprintf("error of the %s: %s", op, err))
 		b.errorOfSearchMode(chatID, err)
 		return
 	}

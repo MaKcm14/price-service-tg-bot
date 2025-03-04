@@ -66,7 +66,7 @@ func mustSetLogger() *slog.Logger {
 }
 
 func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.PostgreSQLRepo) {
-	log.Info("connecting to the db begun")
+	log.Info("connecting to the DB begun")
 
 	dbConn, err := postgres.New(context.Background(), config.DSN, log)
 

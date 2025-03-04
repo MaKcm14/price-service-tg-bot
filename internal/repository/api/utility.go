@@ -14,7 +14,7 @@ type urlConverter struct{}
 
 // convertMarkets converts the users' markets to the URL-string.
 func (u urlConverter) convertMarkets(markets map[string]string) (string, error) {
-	if markets == nil {
+	if len(markets) == 0 {
 		return "", ErrOfMarketsParams
 	}
 	var marketsView string

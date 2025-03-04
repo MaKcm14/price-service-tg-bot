@@ -42,7 +42,7 @@ func (p PriceServiceApi) readResponse(resp *http.Response) ([]byte, error) {
 			errDesc = desc
 		}
 
-		p.logger.Warn(fmt.Sprintf("error of %s: %v: %v", op, ErrApiInteraction, errDesc))
+		p.logger.Warn(fmt.Sprintf("error of the %s: %v: %v", op, ErrApiInteraction, errDesc))
 		return nil, fmt.Errorf("error of the %s: %w: %s", op, ErrApiInteraction, errDesc)
 	}
 
@@ -56,7 +56,7 @@ func (p PriceServiceApi) getProducts(url string, op string) (productResponse, er
 	resp, err := http.Get(url)
 
 	if err != nil {
-		p.logger.Warn(fmt.Sprintf("error of the %v: %v", op, err))
+		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
 		return productResponse{}, fmt.Errorf("error of the %w: %v", ErrApiInteraction, err)
 	}
 	defer resp.Body.Close()
@@ -70,8 +70,8 @@ func (p PriceServiceApi) getProducts(url string, op string) (productResponse, er
 	err = json.Unmarshal(body, &products)
 
 	if err != nil {
-		p.logger.Warn(fmt.Sprintf("error of %s: %v: %v", op, ErrJSONParser, err))
-		return productResponse{}, fmt.Errorf("error of %s: %w: %v", op, ErrJSONParser, err)
+		p.logger.Error(fmt.Sprintf("error of the %s: %v: %v", op, ErrJSONParser, err))
+		return productResponse{}, fmt.Errorf("error of the %s: %w: %v", op, ErrJSONParser, err)
 	}
 
 	return products, nil
@@ -94,10 +94,6 @@ func (p PriceServiceApi) GetProductsByBestPrice(request dto.ProductRequest) (map
 
 	url := p.converter.buildURL(basePath,
 		"query", request.Query, "markets", markets)
-
-	//DEBUG:
-	fmt.Println(url)
-	//TODO: delete
 
 	products, err := p.getProducts(url, op)
 

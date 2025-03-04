@@ -138,7 +138,9 @@ func (f *favoriteMode) showProduct(chatID int64, products map[int]entities.Produ
 
 // showProductModeGettingErrHandler defines the logic of processing
 // the error of getting the favorite products.
-func (f *favoriteMode) showProductModeGettingErrHandler(chatID int64, err error, op string) {
+func (f *favoriteMode) showProductModeGettingErrHandler(chatID int64, err error) {
+	const op = "tgbot.show-favorite-products"
+
 	f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 
 	response := "*Упс... Похоже, произошла ошибка 😞*"
@@ -172,14 +174,12 @@ func (f *favoriteMode) showProductModeNoProdsHandler(chatID int64) {
 
 // showFavoriteProducts defines the logic of handling the favorite products request.
 func (f *favoriteMode) showFavoriteProducts(chatID int64) {
-	const op = "tgbot.show-favorite-products"
-
 	f.botConf.users[chatID].lastAction = showFavoriteProducts
 
 	products, err := f.repo.GetFavoriteProducts(context.Background(), chatID)
 
 	if err != nil {
-		f.showProductModeGettingErrHandler(chatID, err, op)
+		f.showProductModeGettingErrHandler(chatID, err)
 		return
 
 	} else if len(f.botConf.users[chatID].favorites.favoriteLastProdsID) == len(products) {

@@ -25,8 +25,8 @@ func (u UserInteractor) IdentifyUser(tgID int64) error {
 	const op = "services.identification"
 
 	if flagExist, err := u.repo.IsUserExists(context.Background(), tgID); err != nil {
-		u.logger.Warn(fmt.Sprintf("error of the %v: %v", op, err))
-		return fmt.Errorf("%w: %w", ErrDBInteraction, err)
+		u.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
+		return fmt.Errorf("error of the %s: %w: %w", op, ErrDBInteraction, err)
 	} else if !flagExist {
 		u.repo.AddUser(context.Background(), tgID)
 	}
