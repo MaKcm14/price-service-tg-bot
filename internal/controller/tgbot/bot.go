@@ -19,6 +19,7 @@ type TgBot struct {
 	favorite  favoriteMode
 	prodsMode productsMode
 	search    searchMode
+	track     trackedMode
 }
 
 func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
@@ -39,6 +40,7 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		userInteractor: interactor,
 		favorite:       newFavoriteMode(logger, botConf, repo),
 		prodsMode:      newProductsMode(botConf),
+		track:          newTrackedMode(botConf, repo, logger),
 		api:            api,
 	}, nil
 }
@@ -78,8 +80,14 @@ func (t *TgBot) Run() {
 			case menuAction:
 				t.menu(chatID)
 
-			case bestPriceModeData:
-				t.search = newBestPriceMode(t.logger, t.botConf, t.api)
+			case bestPriceModeData, addTrackedProductData:
+
+				if update.CallbackQuery.Data == bestPriceModeData {
+					t.search = newBestPriceMode(t.logger, t.botConf, t.api)
+				} else if update.CallbackQuery.Data == addTrackedProductData {
+					t.search = newTrackedMode(t.botConf, t.favorite.repo, t.logger)
+				}
+
 				t.search.mode(chatID)
 
 			case marketSetterMode:
@@ -114,6 +122,9 @@ func (t *TgBot) Run() {
 
 			case deleteFavoriteProduct:
 				t.favorite.deleteFavoriteProduct(chatID)
+
+			case trackedModeData:
+				t.track.trackedModeMenu(chatID)
 
 			}
 		}

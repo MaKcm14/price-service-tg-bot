@@ -8,7 +8,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
@@ -36,9 +35,9 @@ func (b *bestPriceMode) mode(chatID int64) {
 	}
 
 	b.botConf.users[chatID].lastAction = bestPriceModeData
-	b.botConf.users[chatID].request = dto.NewProductRequest(entities.BestPriceMode)
+	b.botConf.users[chatID].request = dto.NewProductRequest()
 
-	priceRangeInstructs := []string{
+	instructs := []string{
 		"*Ты перешёл в режим поиска Best Price 📊 *\n\n",
 		"❓*Как его использовать?*\n",
 		"- Необходимо нажать на кнопки тех маркетов, в которых ты хочешь искать\n\n",
@@ -49,7 +48,7 @@ func (b *bestPriceMode) mode(chatID int64) {
 
 	buffer := bytes.Buffer{}
 
-	for _, instruct := range priceRangeInstructs {
+	for _, instruct := range instructs {
 		buffer.WriteString(instruct)
 	}
 

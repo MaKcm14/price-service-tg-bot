@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/redis"
 	"github.com/MaKcm14/price-service/pkg/entities"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -49,6 +50,21 @@ func New(ctx context.Context, dsn string, log *slog.Logger) (PostgreSQLRepo, err
 		logger: log,
 		cache:  cache,
 	}, nil
+}
+
+// IsTrackedProductExists checks that the user with the current chatID already set the tracked product.
+func (p PostgreSQLRepo) IsTrackedProductExists(ctx context.Context, chatID int64) (bool, error) {
+	const op = "postgres.check-tracked-prods"
+
+	rows, err := p.pool.Query(ctx, "SELECT tracked_id FROM tracked_products WHERE user_id=$1", chatID)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
+		return false, ErrQueryExec
+	}
+	defer rows.Close()
+
+	return rows.Next(), nil
 }
 
 // IsUserExists checks that the user with the chatID exists at the DB.
@@ -95,6 +111,37 @@ func (p PostgreSQLRepo) AddUser(ctx context.Context, chatID int64) error {
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
+		return ErrQueryExec
+	}
+
+	return nil
+}
+
+// AddTrackedProduct adds the tracked product to the DB.
+func (p PostgreSQLRepo) AddTrackedProduct(ctx context.Context, chatID int64, request dto.ProductRequest) error {
+	const op = "postgres.add-tracked-product"
+
+	id, err := p.GetUserID(ctx, chatID)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return ErrQueryExec
+	}
+
+	markets := make([]string, 0, 10)
+
+	for _, market := range request.Markets {
+		markets = append(markets, market)
+	}
+
+	query := fmt.Sprintf("INSERT INTO tracked_products "+
+		"(product_name, price_down_bound, price_up_bound, market_filter, user_id)\n"+
+		"VALUES ('%s', %d, %d, $1, %d)", request.Query, 0, 0, id)
+
+	_, err = p.pool.Exec(ctx, query, markets)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		return ErrQueryExec
 	}
 

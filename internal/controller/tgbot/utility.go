@@ -21,7 +21,10 @@ const (
 	showRequest = "show-request"
 
 	// button's data name.
-	trackedModeData = "tracked-products"
+	trackedModeData          = "tracked-products"
+	addTrackedProductData    = "add-tracked-product"
+	deleteTrackedProductData = "delete-tracked-product"
+	getTrackedProdMode       = "tracked-product-getter"
 
 	bestPriceModeData = "best-price"
 

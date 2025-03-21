@@ -11,12 +11,15 @@ type (
 	// Validator defines the repository check-actions.
 	Validator interface {
 		IsUserExists(ctx context.Context, tgID int64) (bool, error)
+		IsTrackedProductExists(ctx context.Context, tgID int64) (bool, error)
 	}
 
 	// Updater defines the repository-storage modify-actions.
 	Modificator interface {
 		AddUser(ctx context.Context, tgID int64) error
 		AddFavoriteProducts(ctx context.Context, tgID int64, products []entities.Product) error
+		AddTrackedProduct(ctx context.Context, chatID int64, request dto.ProductRequest) error
+
 		DeleteFavoriteProducts(ctx context.Context, tgID int64, products []int) error
 	}
 

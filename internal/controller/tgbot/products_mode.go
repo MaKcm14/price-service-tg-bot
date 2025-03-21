@@ -21,8 +21,8 @@ func newProductsMode(bot *tgBotConfigs) productsMode {
 }
 
 // marketSetterMode sets the markets.
-func (b *productsMode) marketSetterMode(chatID int64) {
-	b.botConf.users[chatID].lastAction = marketSetterMode
+func (p *productsMode) marketSetterMode(chatID int64) {
+	p.botConf.users[chatID].lastAction = marketSetterMode
 
 	keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
@@ -36,7 +36,7 @@ func (b *productsMode) marketSetterMode(chatID int64) {
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMarketSetter
 
-	b.botConf.bot.Send(message)
+	p.botConf.bot.Send(message)
 }
 
 // nextProduct defines the logic of getting the next product.
@@ -119,7 +119,6 @@ func (p *productsMode) addMarket(update *tgbotapi.Update) {
 	p.botConf.users[chatID].request.Markets[update.CallbackQuery.Data] = update.CallbackQuery.Data
 
 	p.botConf.users[chatID].request = dto.ProductRequest{
-		Mode:    request.Mode,
 		Markets: request.Markets,
 	}
 }
