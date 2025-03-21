@@ -21,11 +21,13 @@ type (
 		AddTrackedProduct(ctx context.Context, chatID int64, request dto.ProductRequest) error
 
 		DeleteFavoriteProducts(ctx context.Context, tgID int64, products []int) error
+		DeleteTrackedProduct(ctx context.Context, tgID int64) error
 	}
 
 	// Getter defines the repository-storage read operations.
 	Getter interface {
 		GetFavoriteProducts(ctx context.Context, tgID int64) (map[int]entities.Product, error)
+		GetTrackedProduct(ctx context.Context, tgID int64) (dto.ProductRequest, error)
 	}
 
 	// Repository defines the repository-storage object abstraction.

@@ -10,6 +10,7 @@ import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/redis"
 	"github.com/MaKcm14/price-service/pkg/entities"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -56,7 +57,14 @@ func New(ctx context.Context, dsn string, log *slog.Logger) (PostgreSQLRepo, err
 func (p PostgreSQLRepo) IsTrackedProductExists(ctx context.Context, chatID int64) (bool, error) {
 	const op = "postgres.check-tracked-prods"
 
-	rows, err := p.pool.Query(ctx, "SELECT tracked_id FROM tracked_products WHERE user_id=$1", chatID)
+	id, err := p.GetUserID(ctx, chatID)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
+		return false, ErrQueryExec
+	}
+
+	rows, err := p.pool.Query(ctx, "SELECT tracked_id FROM tracked_products WHERE user_id=$1", id)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
@@ -135,8 +143,8 @@ func (p PostgreSQLRepo) AddTrackedProduct(ctx context.Context, chatID int64, req
 	}
 
 	query := fmt.Sprintf("INSERT INTO tracked_products "+
-		"(product_name, price_down_bound, price_up_bound, market_filter, user_id)\n"+
-		"VALUES ('%s', %d, %d, $1, %d)", request.Query, 0, 0, id)
+		"(product_name, market_filter, user_id)\n"+
+		"VALUES ('%s', $1, %d)", request.Query, id)
 
 	_, err = p.pool.Exec(ctx, query, markets)
 
@@ -146,6 +154,64 @@ func (p PostgreSQLRepo) AddTrackedProduct(ctx context.Context, chatID int64, req
 	}
 
 	return nil
+}
+
+// DeleteTrackedProduct deletes the tracked product of the current chatID.
+func (p PostgreSQLRepo) DeleteTrackedProduct(ctx context.Context, chatID int64) error {
+	const op = "postgres.delete-tracked-product"
+
+	id, err := p.GetUserID(ctx, chatID)
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return ErrQueryExec
+	}
+
+	_, err = p.pool.Exec(ctx, "DELETE FROM tracked_products WHERE user_id=$1", id)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return ErrQueryExec
+	}
+
+	return nil
+}
+
+// GetTrackedProduct gets the tracked product for the current chatID.
+func (p PostgreSQLRepo) GetTrackedProduct(ctx context.Context, chatID int64) (dto.ProductRequest, error) {
+	const op = "postgres.get-tracked-product"
+
+	res := dto.NewProductRequest()
+
+	id, err := p.GetUserID(ctx, chatID)
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return dto.ProductRequest{}, ErrQueryExec
+	}
+
+	rows, err := p.pool.Query(ctx, "SELECT product_name, market_filter WHERE user_id=$1", id)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return dto.ProductRequest{}, ErrQueryExec
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		var markets []string
+
+		rows.Scan(&res.Query, markets)
+
+		for _, market := range markets {
+			res.Markets[market] = market
+		}
+	}
+
+	if rows.Err() != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return dto.ProductRequest{}, ErrQueryExec
+	}
+
+	return res, nil
 }
 
 // getUserProducts gets the products from the DB for the current chatID.
