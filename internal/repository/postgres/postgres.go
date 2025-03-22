@@ -177,7 +177,7 @@ func (p PostgreSQLRepo) DeleteTrackedProduct(ctx context.Context, chatID int64) 
 }
 
 // GetTrackedProduct gets the tracked product for the current chatID.
-func (p PostgreSQLRepo) GetTrackedProduct(ctx context.Context, chatID int64) (dto.ProductRequest, error) {
+func (p PostgreSQLRepo) GetTrackedProduct(ctx context.Context, chatID int64) (dto.ProductRequest, bool, error) {
 	const op = "postgres.get-tracked-product"
 
 	res := dto.NewProductRequest()
@@ -185,33 +185,35 @@ func (p PostgreSQLRepo) GetTrackedProduct(ctx context.Context, chatID int64) (dt
 	id, err := p.GetUserID(ctx, chatID)
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		return dto.ProductRequest{}, ErrQueryExec
+		return dto.ProductRequest{}, false, ErrQueryExec
 	}
 
-	rows, err := p.pool.Query(ctx, "SELECT product_name, market_filter WHERE user_id=$1", id)
+	rows, err := p.pool.Query(ctx, "SELECT product_name, market_filter FROM tracked_products WHERE user_id=$1", id)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		return dto.ProductRequest{}, ErrQueryExec
+		return dto.ProductRequest{}, false, ErrQueryExec
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		var markets []string
+		markets := make([]string, 0, 10)
 
-		rows.Scan(&res.Query, markets)
+		rows.Scan(&res.Query, &markets)
 
 		for _, market := range markets {
 			res.Markets[market] = market
 		}
+	} else {
+		return dto.ProductRequest{}, false, nil
 	}
 
 	if rows.Err() != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		return dto.ProductRequest{}, ErrQueryExec
+		return dto.ProductRequest{}, false, ErrQueryExec
 	}
 
-	return res, nil
+	return res, true, nil
 }
 
 // getUserProducts gets the products from the DB for the current chatID.

@@ -126,6 +126,12 @@ func (t *TgBot) Run() {
 			case trackedModeData:
 				t.track.trackedModeMenu(chatID)
 
+			case deleteTrackedProductData:
+				t.track.deleteTrackedProduct(chatID)
+
+			case getTrackedProdMode:
+				t.track.getTrackedProduct(chatID)
+
 			}
 		}
 	}

@@ -27,7 +27,7 @@ type (
 	// Getter defines the repository-storage read operations.
 	Getter interface {
 		GetFavoriteProducts(ctx context.Context, tgID int64) (map[int]entities.Product, error)
-		GetTrackedProduct(ctx context.Context, tgID int64) (dto.ProductRequest, error)
+		GetTrackedProduct(ctx context.Context, tgID int64) (dto.ProductRequest, bool, error)
 	}
 
 	// Repository defines the repository-storage object abstraction.
