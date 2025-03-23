@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
 	"github.com/MaKcm14/price-service/pkg/entities"
 )
 
@@ -39,6 +40,11 @@ const (
 	showFavoriteProducts  = "show-favorite-products"
 	deleteFavoriteProduct = "delete-favorite-product"
 )
+
+type TrackedProduct struct {
+	ChatID   int64
+	Response api.ProductResponse
+}
 
 // userSampleConfig defines the logic of the current user's products sample interaction and
 // iteration.

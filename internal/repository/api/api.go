@@ -52,28 +52,28 @@ func (p PriceServiceApi) readResponse(resp *http.Response) ([]byte, error) {
 }
 
 // getProducts defines the main logic of getting the products for the different modes.
-func (p PriceServiceApi) getProducts(url string, op string) (productResponse, error) {
-	products := newProductResponse()
+func (p PriceServiceApi) getProducts(url string, op string) (ProductResponse, error) {
+	products := NewProductResponse()
 
 	resp, err := http.Get(url)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %v: %v", op, err))
-		return productResponse{}, fmt.Errorf("error of the %w: %v", ErrApiInteraction, err)
+		return ProductResponse{}, fmt.Errorf("error of the %w: %v", ErrApiInteraction, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := p.readResponse(resp)
 
 	if err != nil {
-		return productResponse{}, err
+		return ProductResponse{}, err
 	}
 
 	err = json.Unmarshal(body, &products)
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %v: %v", op, ErrJSONParser, err))
-		return productResponse{}, fmt.Errorf("error of the %s: %w: %v", op, ErrJSONParser, err)
+		return ProductResponse{}, fmt.Errorf("error of the %s: %w: %v", op, ErrJSONParser, err)
 	}
 
 	return products, nil

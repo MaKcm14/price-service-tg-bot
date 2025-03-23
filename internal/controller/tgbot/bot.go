@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"context"
 	"log/slog"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -21,10 +22,20 @@ type TgBot struct {
 	set       setter
 	search    searcher
 
-	track trackedMode
+	track        trackedMode
+	reader       services.Reader
+	trackedProds chan *TrackedProduct
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
+func New(
+	token string,
+	logger *slog.Logger,
+	interactor services.UserConfiger,
+	api services.ApiInteractor,
+	repo services.Repository,
+	trackedProducts chan *TrackedProduct,
+	reader services.Reader,
+) (*TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -44,6 +55,8 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		prodsMode:      newProductsMode(botConf),
 		track:          newTrackedMode(botConf, repo, logger, api),
 		api:            api,
+		trackedProds:   trackedProducts,
+		reader:         reader,
 	}, nil
 }
 
@@ -57,6 +70,8 @@ func (t *TgBot) Run() {
 	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
 
 	go t.track.sendAsyncRequests()
+	go t.readTrackedProducts()
+	go t.reader.ReadProducts(context.Background())
 
 	for update := range updates {
 		if update.Message != nil {
@@ -142,4 +157,8 @@ func (t *TgBot) Run() {
 			}
 		}
 	}
+}
+
+func (t *TgBot) Close() {
+	t.reader.Close()
 }

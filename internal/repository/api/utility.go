@@ -50,12 +50,12 @@ func (u urlConverter) buildURL(basePath string, filters ...string) string {
 }
 
 // productResponse defines the user's product response from API.
-type productResponse struct {
+type ProductResponse struct {
 	Sample map[string]entities.ProductSample `json:"samples"`
 }
 
-func newProductResponse() productResponse {
-	return productResponse{
+func NewProductResponse() ProductResponse {
+	return ProductResponse{
 		Sample: make(map[string]entities.ProductSample),
 	}
 }

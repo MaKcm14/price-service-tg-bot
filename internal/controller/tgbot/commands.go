@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"bytes"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
@@ -81,4 +82,60 @@ func (t *TgBot) menu(chatID int64) {
 	t.botConf.bot.Send(message)
 
 	t.botConf.users[chatID].favorites = newUserFavoritesConfig()
+}
+
+func (t *TgBot) showTrackedProduct(chatID int64) {
+	iterInstrs := []string{
+		"*🦆 Я вернулся с хорошими новостями!* 😊\n\n",
+		"*Твой отслеживамый товар получен!*",
+		"❓*Как использовать поиск?*\n",
+		"✔ Нажимай на тот маркет, товар которого хочешь посмотреть\n",
+		"✔ Если хочешь добавить товар в Избранное, нажми на кнопку\n",
+		"*Давай смотреть!* 👇",
+	}
+
+	buffer := bytes.Buffer{}
+
+	for _, instruct := range iterInstrs {
+		buffer.WriteString(instruct)
+	}
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Смотреть товары 📦", productsIter)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	message := tgbotapi.NewMessage(chatID, buffer.String())
+
+	message.ParseMode = markDown
+	message.ReplyMarkup = keyboard
+
+	t.botConf.bot.Send(message)
+}
+
+// readTrackedProducts reads the tracked products from the chan connected with the kafka's consumer.
+func (t *TgBot) readTrackedProducts() {
+	for products := range t.trackedProds {
+		if _, flagExist := t.botConf.users[products.ChatID]; !flagExist {
+			t.botConf.users[products.ChatID] = newUserConfig()
+		}
+
+		for t.botConf.users[products.ChatID].lastAction == showRequest {
+			continue
+		}
+
+		t.botConf.users[products.ChatID].sample.sample = products.Response.Sample
+
+		markets := make(map[string]int)
+
+		for _, market := range t.botConf.users[products.ChatID].request.Markets {
+			markets[market] = 0
+		}
+
+		t.botConf.users[products.ChatID].sample.samplePtr = markets
+
+		t.showTrackedProduct(products.ChatID)
+
+		time.Sleep(time.Minute * 1)
+	}
 }

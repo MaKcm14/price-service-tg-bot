@@ -38,8 +38,14 @@ type (
 		Getter
 	}
 
-	// AsyncReader defines the repository async-reader object abstraction.
-	AsyncReader interface {
+	Closer interface {
+		Close()
+	}
+
+	// Reader defines the repository kafka reader object abstraction.
+	Reader interface {
+		ReadProducts(ctx context.Context)
+		Closer
 	}
 
 	// ApiInteractor defines the repository price-service-api object abstraction.
