@@ -28,6 +28,7 @@ type (
 	Getter interface {
 		GetFavoriteProducts(ctx context.Context, tgID int64) (map[int]entities.Product, error)
 		GetTrackedProduct(ctx context.Context, tgID int64) (dto.ProductRequest, bool, error)
+		GetUsersTrackedProducts(ctx context.Context) (map[int64]dto.ProductRequest, error)
 	}
 
 	// Repository defines the repository-storage object abstraction.
@@ -37,8 +38,13 @@ type (
 		Getter
 	}
 
+	// AsyncReader defines the repository async-reader object abstraction.
+	AsyncReader interface {
+	}
+
 	// ApiInteractor defines the repository price-service-api object abstraction.
 	ApiInteractor interface {
 		GetProductsByBestPrice(request dto.ProductRequest) (map[string]entities.ProductSample, error)
+		SendAsyncBestPriceRequest(request dto.ProductRequest, headers map[string]string) error
 	}
 )

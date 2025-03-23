@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
@@ -16,13 +17,15 @@ type trackedMode struct {
 	botConf *tgBotConfigs
 	logger  *slog.Logger
 	repo    services.Repository
+	api     services.ApiInteractor
 }
 
-func newTrackedMode(botConf *tgBotConfigs, repo services.Repository, logger *slog.Logger) trackedMode {
+func newTrackedMode(botConf *tgBotConfigs, repo services.Repository, logger *slog.Logger, api services.ApiInteractor) trackedMode {
 	return trackedMode{
 		botConf: botConf,
 		logger:  logger,
 		repo:    repo,
+		api:     api,
 	}
 }
 
@@ -217,10 +220,6 @@ func (t trackedMode) showRequest(chatID int64) {
 	t.botConf.bot.Send(message)
 }
 
-func (t trackedMode) startSearch(chatID int64) {
-	// logic of sending the request to the price-service
-}
-
 // getTrackedProduct defines the logic of getting the tracked product for the current chatID.
 func (t trackedMode) getTrackedProduct(chatID int64) {
 	const op = "tgbot.get-tracked-product"
@@ -335,4 +334,36 @@ func (t trackedMode) deleteTrackedProduct(chatID int64) {
 	message.ReplyMarkup = keyboard
 
 	t.botConf.bot.Send(message)
+}
+
+// sendRequests defines the logic of sending the async requests.
+func (t trackedMode) sendAsyncRequests() {
+	const op = "tgbot.send-async-requests"
+
+	for {
+		timeStart := time.Now()
+		res, err := t.repo.GetUsersTrackedProducts(context.Background())
+
+		if err != nil {
+			t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+			time.Sleep(time.Hour * 24)
+			continue
+		}
+
+		for chatID, request := range res {
+			err = t.api.SendAsyncBestPriceRequest(request, map[string]string{
+				"ChatID": fmt.Sprint(chatID),
+			})
+
+			if err != nil {
+				t.logger.Warn(fmt.Sprintf("error of the %s: %s", op, err))
+			}
+
+			time.Sleep(time.Minute * 1)
+		}
+
+		for time.Since(timeStart) < time.Hour*24 {
+			continue
+		}
+	}
 }

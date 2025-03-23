@@ -18,8 +18,10 @@ type TgBot struct {
 
 	favorite  favoriteMode
 	prodsMode productsMode
-	search    searchMode
-	track     trackedMode
+	set       setter
+	search    searcher
+
+	track trackedMode
 }
 
 func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
@@ -40,7 +42,7 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		userInteractor: interactor,
 		favorite:       newFavoriteMode(logger, botConf, repo),
 		prodsMode:      newProductsMode(botConf),
-		track:          newTrackedMode(botConf, repo, logger),
+		track:          newTrackedMode(botConf, repo, logger, api),
 		api:            api,
 	}, nil
 }
@@ -53,6 +55,8 @@ func (t *TgBot) Run() {
 	updateConfig.Timeout = 30
 
 	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
+
+	go t.track.sendAsyncRequests()
 
 	for update := range updates {
 		if update.Message != nil {
@@ -68,8 +72,8 @@ func (t *TgBot) Run() {
 			default:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productSetter {
-					t.search.setRequest(&update)
-					t.search.showRequest(chatID)
+					t.set.setRequest(&update)
+					t.set.showRequest(chatID)
 				}
 			}
 
@@ -83,12 +87,15 @@ func (t *TgBot) Run() {
 			case bestPriceModeData, addTrackedProductData:
 
 				if update.CallbackQuery.Data == bestPriceModeData {
-					t.search = newBestPriceMode(t.logger, t.botConf, t.api)
+					bestPrice := newBestPriceMode(t.logger, t.botConf, t.api)
+					t.set = bestPrice
+					t.search = bestPrice
+
 				} else if update.CallbackQuery.Data == addTrackedProductData {
-					t.search = newTrackedMode(t.botConf, t.favorite.repo, t.logger)
+					t.set = newTrackedMode(t.botConf, t.favorite.repo, t.logger, t.api)
 				}
 
-				t.search.mode(chatID)
+				t.set.mode(chatID)
 
 			case marketSetterMode:
 				t.prodsMode.marketSetterMode(chatID)
@@ -103,7 +110,7 @@ func (t *TgBot) Run() {
 				t.prodsMode.addMarket(&update)
 
 			case productSetter:
-				t.search.productSetter(chatID)
+				t.set.productSetter(chatID)
 
 			case startSearch:
 				t.search.startSearch(chatID)

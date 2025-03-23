@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ConfigOpt configs the option for the app's start.
@@ -51,6 +52,21 @@ func ConfigSocket(key string) ConfigOpt {
 			return fmt.Errorf("error of %s var: %v", socketName, errVar)
 		}
 		st.PriceServiceSocket = val
+
+		return nil
+	}
+}
+
+func ConfigBrokers(key string) ConfigOpt {
+	return func(st *Settings) error {
+		const errVar = "check this var is set or its value is not empty and try again"
+
+		val := os.Getenv(key)
+
+		if len(val) == 0 {
+			return fmt.Errorf("error of %s var: %v", key, errVar)
+		}
+		st.Brokers = strings.Split(val, " ")
 
 		return nil
 	}

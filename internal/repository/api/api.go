@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -77,6 +79,21 @@ func (p PriceServiceApi) getProducts(url string, op string) (productResponse, er
 	return products, nil
 }
 
+// sendRequest defines the logic of sending the POST-request for async products getting.
+func (p PriceServiceApi) sendRequest(url string, op string, body io.Reader) error {
+	resp, err := http.Post(url, "application/json", body)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %v: %v", op, ErrApiInteraction, err))
+		return fmt.Errorf("error of the %s: %w: %v", op, ErrApiInteraction, err)
+	} else if resp.StatusCode > 299 {
+		p.logger.Error(fmt.Sprintf("error of the %s: %v", op, ErrApiInteraction))
+		return fmt.Errorf("error of the %s: %w", op, ErrApiInteraction)
+	}
+
+	return nil
+}
+
 // GetProductsByBestPrice defines the logic of getting the products by best price
 // according to the user's request data.
 func (p PriceServiceApi) GetProductsByBestPrice(request dto.ProductRequest) (map[string]entities.ProductSample, error) {
@@ -102,4 +119,35 @@ func (p PriceServiceApi) GetProductsByBestPrice(request dto.ProductRequest) (map
 	}
 
 	return products.Sample, nil
+}
+
+// SendAsyncBestPriceRequest sends async request for getting the products through the kafka.
+func (p PriceServiceApi) SendAsyncBestPriceRequest(request dto.ProductRequest, headers map[string]string) error {
+	const op = "api.best-price-async-sender"
+
+	basePath := fmt.Sprintf("http://%s/products/filter/price/best-price/async", p.socket)
+
+	markets, err := p.converter.convertMarkets(request.Markets)
+
+	if err != nil {
+		err = fmt.Errorf("error of the %s: error of markets params: %w", op, err)
+		p.logger.Warn(err.Error())
+		return err
+	}
+
+	url := p.converter.buildURL(basePath,
+		"query", request.Query, "markets", markets)
+
+	extraHeaders := NewExtraHeaders(headers)
+
+	res, _ := json.Marshal(extraHeaders)
+
+	err = p.sendRequest(url, op, bytes.NewReader(res))
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %v: %s", op, ErrApiInteraction, err))
+		return fmt.Errorf("error of the %s: %w: %s", op, ErrApiInteraction, err)
+	}
+
+	return nil
 }

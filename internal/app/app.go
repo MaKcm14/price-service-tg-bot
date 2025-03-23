@@ -32,6 +32,7 @@ func NewService() *Service {
 		conf.ConfigBotToken("BOT_TOKEN"),
 		conf.ConfigDSN("DSN"),
 		conf.ConfigSocket("PRICE_SERVICE_SOCKET"),
+		conf.ConfigBrokers("BROKERS"),
 	)
 
 	bot, dbConn := mustSetBot(log, config)

@@ -12,6 +12,7 @@ type Settings struct {
 	TgBotToken         string
 	DSN                string
 	PriceServiceSocket string
+	Brokers            []string
 }
 
 func NewSettings(log *slog.Logger, opts ...ConfigOpt) Settings {

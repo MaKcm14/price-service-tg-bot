@@ -216,6 +216,45 @@ func (p PostgreSQLRepo) GetTrackedProduct(ctx context.Context, chatID int64) (dt
 	return res, true, nil
 }
 
+// GetUsersTrackedProducts defines the logic of getting the tracked products of every user from the DB.
+func (p PostgreSQLRepo) GetUsersTrackedProducts(ctx context.Context) (map[int64]dto.ProductRequest, error) {
+	const op = "postgres.get-users-tracked-products-async"
+
+	query := fmt.Sprint("SELECT telegram_id, product_name, market_filter ",
+		"FROM users AS u JOIN tracked_products AS t ON u.id=t.user_id")
+
+	rows, err := p.pool.Query(ctx, query)
+
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return nil, ErrQueryExec
+	}
+	defer rows.Close()
+
+	res := make(map[int64]dto.ProductRequest)
+
+	for rows.Next() {
+		chatID := int64(0)
+		markets := make([]string, 0, 200)
+		product := dto.NewProductRequest()
+
+		rows.Scan(&chatID, &product.Query, &markets)
+
+		for _, market := range markets {
+			product.Markets[market] = market
+		}
+
+		res[chatID] = product
+	}
+
+	if rows.Err() != nil {
+		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		return nil, ErrQueryExec
+	}
+
+	return res, nil
+}
+
 // getUserProducts gets the products from the DB for the current chatID.
 func (p PostgreSQLRepo) getUserProducts(ctx context.Context, chatID int64) (map[int]entities.Product, error) {
 	const op = "postgres.getting-products"
