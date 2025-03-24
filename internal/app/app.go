@@ -86,7 +86,7 @@ func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.
 	reader, err := kafka.NewConsumer(config.Brokers, log, products)
 
 	if err != nil {
-		log.Error(fmt.Sprintf("error starting the DB: %v", err))
+		log.Error(fmt.Sprintf("error of Kafka: %v", err))
 		panic(err)
 	}
 

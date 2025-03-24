@@ -1,0 +1,25 @@
+services:
+    redis:
+
+      image: 'redis:latest'
+
+      container_name: redis
+
+
+    price-service-tg-bot:
+  
+        container_name: price-service-tg-bot
+
+        build: .
+
+        volumes:
+          - price-service-tgbot-volume:/tgbot/logs
+
+        network_mode: container:redis
+
+        depends_on:
+          - redis
+
+volumes:
+    price-service-tgbot-volume:
+        name: tgbot-logs

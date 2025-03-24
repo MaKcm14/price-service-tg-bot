@@ -40,6 +40,8 @@ BOT_TOKEN="your_bot_token_here"
 DSN="postgresql://user:pwd@ip:5432/dbName"
 
 PRICE_SERVICE_SOCKET="socket"
+
+BROKERS="broker_socket_1 broker_socker_2 ..."
 ```
 
 ## Examples  
@@ -55,5 +57,5 @@ You need to obtain the **bot token** from [**@BotFather**](https://t.me/BotFathe
 - PostgreSQL  
 - Redis  
 - Docker  
-- Kafka *(in progress)*  
+- Kafka
 - Telegram API  
