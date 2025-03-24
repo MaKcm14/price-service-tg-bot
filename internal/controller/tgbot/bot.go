@@ -69,9 +69,9 @@ func (t *TgBot) Run() {
 
 	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
 
-	go t.track.sendAsyncRequests()
 	go t.readTrackedProducts()
 	go t.reader.ReadProducts(context.Background())
+	go t.track.sendAsyncRequests()
 
 	for update := range updates {
 		if update.Message != nil {
@@ -161,4 +161,5 @@ func (t *TgBot) Run() {
 
 func (t *TgBot) Close() {
 	t.reader.Close()
+	close(t.trackedProds)
 }
