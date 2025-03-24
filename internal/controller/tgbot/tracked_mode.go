@@ -340,7 +340,7 @@ func (t trackedMode) deleteTrackedProduct(chatID int64) {
 func (t trackedMode) sendAsyncRequests() {
 	const op = "tgbot.send-async-requests"
 
-	time.Sleep(time.Minute * 1)
+	time.Sleep(time.Second * 90)
 
 	for {
 		timeStart := time.Now()
