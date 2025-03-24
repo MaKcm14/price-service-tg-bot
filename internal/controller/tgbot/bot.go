@@ -2,7 +2,9 @@ package tgbot
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
@@ -45,7 +47,12 @@ func New(
 		return &TgBot{}, err
 	}
 
-	botConf := newTgBotConfigs(bot)
+	botConf, err := newTgBotConfigs(bot, api)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("error of configuring the tg-bot: %s", err))
+		return nil, fmt.Errorf("error of configuring the tg-bot: %s", err)
+	}
 
 	return &TgBot{
 		botConf:        botConf,
@@ -115,15 +122,6 @@ func (t *TgBot) Run() {
 			case marketSetterMode:
 				t.prodsMode.marketSetterMode(chatID)
 
-			case wildberries, megamarket:
-				if user, flagExist := t.botConf.users[chatID]; flagExist &&
-					user.lastAction == productsIter {
-					t.prodsMode.productsIter(chatID, update.CallbackQuery.Data)
-					continue
-				}
-
-				t.prodsMode.addMarket(&update)
-
 			case productSetter:
 				t.set.productSetter(chatID)
 
@@ -154,6 +152,18 @@ func (t *TgBot) Run() {
 			case getTrackedProdMode:
 				t.track.getTrackedProduct(chatID)
 
+			default:
+				for market := range t.botConf.markets {
+					if update.CallbackQuery.Data == market {
+						if user, flagExist := t.botConf.users[chatID]; flagExist &&
+							user.lastAction == productsIter {
+							t.prodsMode.productsIter(chatID, strings.ToLower(update.CallbackQuery.Data))
+							continue
+						}
+
+						t.prodsMode.addMarket(&update)
+					}
+				}
 			}
 		}
 	}

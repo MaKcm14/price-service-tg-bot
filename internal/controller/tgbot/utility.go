@@ -1,10 +1,13 @@
 package tgbot
 
 import (
+	"fmt"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 	"github.com/MaKcm14/price-service/pkg/entities"
 )
 
@@ -13,8 +16,8 @@ const (
 	markDown = "Markdown"
 
 	// the markets for the request.
-	megamarket  = "megamarket"
-	wildberries = "wildberries"
+	//megamarket  = "megamarket"
+	//wildberries = "wildberries"
 
 	// command's name.
 	startAction = "start"
@@ -92,13 +95,39 @@ func newUserConfig() *userConfig {
 
 // tgBotConfigs defines the main logic of the bot and users' configuration.
 type tgBotConfigs struct {
-	users map[int64]*userConfig
-	bot   *tgbotapi.BotAPI
+	users   map[int64]*userConfig
+	bot     *tgbotapi.BotAPI
+	markets map[string]string
 }
 
-func newTgBotConfigs(bot *tgbotapi.BotAPI) *tgBotConfigs {
-	return &tgBotConfigs{
-		bot:   bot,
-		users: make(map[int64]*userConfig),
+func newTgBotConfigs(bot *tgbotapi.BotAPI, api services.ApiInteractor) (*tgBotConfigs, error) {
+	const op = "tgbot.new-bot-configs"
+
+	markets, err := api.GetSupportedMarkets()
+
+	if err != nil {
+		return nil, fmt.Errorf("error of the %s: %s", op, err)
 	}
+
+	return &tgBotConfigs{
+		bot:     bot,
+		users:   make(map[int64]*userConfig),
+		markets: markets,
+	}, nil
+}
+
+// getKeyBoardWithMarkets gets the keyboard with the markets that was given from the price-service api.
+func (c tgBotConfigs) getKeyBoardWithMarkets(buttons ...[]tgbotapi.InlineKeyboardButton) tgbotapi.InlineKeyboardMarkup {
+	marketsButton := make([][]tgbotapi.InlineKeyboardButton, 0, len(c.markets))
+
+	for market, emoji := range c.markets {
+		marketsButton = append(marketsButton,
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", market, emoji), market)),
+		)
+	}
+
+	marketsButton = append(marketsButton, buttons...)
+
+	return tgbotapi.NewInlineKeyboardMarkup(marketsButton...)
 }

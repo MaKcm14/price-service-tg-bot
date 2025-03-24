@@ -52,5 +52,6 @@ type (
 	ApiInteractor interface {
 		GetProductsByBestPrice(request dto.ProductRequest) (map[string]entities.ProductSample, error)
 		SendAsyncBestPriceRequest(request dto.ProductRequest, headers map[string]string) error
+		GetSupportedMarkets() (map[string]string, error)
 	}
 )

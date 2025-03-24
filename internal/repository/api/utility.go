@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/url"
+	"strings"
 
 	"github.com/MaKcm14/price-service/pkg/entities"
 )
@@ -20,8 +21,8 @@ func (u urlConverter) convertMarkets(markets map[string]string) (string, error) 
 	var marketsView string
 
 	count := 0
-	for _, market := range markets {
-		marketsView += market
+	for market := range markets {
+		marketsView += strings.ToLower(market)
 		count++
 		if count != len(markets) {
 			marketsView += "+"
