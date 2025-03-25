@@ -80,7 +80,7 @@ func (p PriceServiceApi) getProducts(url string, op string) (ProductResponse, er
 }
 
 // sendRequest defines the logic of sending the POST-request for async products getting.
-func (p PriceServiceApi) sendRequest(url string, op string, body io.Reader) error {
+func (p PriceServiceApi) sendPostAsyncProdsRequest(url string, op string, body io.Reader) error {
 	resp, err := http.Post(url, "application/json", body)
 
 	if err != nil {
@@ -138,11 +138,11 @@ func (p PriceServiceApi) SendAsyncBestPriceRequest(request dto.ProductRequest, h
 	url := p.converter.buildURL(basePath,
 		"query", request.Query, "markets", markets)
 
-	extraHeaders := NewExtraHeaders(headers)
+	extraHeaders := newExtraHeaders(headers)
 
 	res, _ := json.Marshal(extraHeaders)
 
-	err = p.sendRequest(url, op, bytes.NewReader(res))
+	err = p.sendPostAsyncProdsRequest(url, op, bytes.NewReader(res))
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %v: %s", op, ErrApiInteraction, err))

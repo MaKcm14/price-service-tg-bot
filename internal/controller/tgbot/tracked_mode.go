@@ -270,7 +270,7 @@ func (t trackedMode) getTrackedProduct(chatID int64) {
 
 	request := "*Твой текущий отслеживаемый товар 🔔*\n"
 
-	for _, market := range t.botConf.users[chatID].request.Markets {
+	for _, market := range product.Markets {
 		request += fmt.Sprintf("• %s\n", market)
 	}
 

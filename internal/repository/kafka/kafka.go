@@ -13,8 +13,7 @@ import (
 type Consumer struct {
 	cons   sarama.ConsumerGroup
 	logger *slog.Logger
-
-	prods chan *tgbot.TrackedProduct
+	prods  chan *tgbot.TrackedProduct
 }
 
 func NewConsumer(brokers []string, log *slog.Logger, prods chan *tgbot.TrackedProduct) (Consumer, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
 )
 
+// Handler defines the logic of handling the kafka's messages.
 type Handler struct {
 	logger *slog.Logger
 	prods  chan *tgbot.TrackedProduct

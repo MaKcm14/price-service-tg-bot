@@ -21,8 +21,7 @@ type Service struct {
 	logger      *slog.Logger
 	bot         *tgbot.TgBot
 	mainLogFile *os.File
-
-	dbConn postgres.PostgreSQLRepo
+	dbConn      postgres.PostgreSQLRepo
 }
 
 func NewService() *Service {

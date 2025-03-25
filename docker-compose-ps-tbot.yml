@@ -1,13 +1,11 @@
 services:
     redis:
-
       image: 'redis:latest'
-
+      
       container_name: redis
 
 
     price-service-tg-bot:
-  
         container_name: price-service-tg-bot
 
         build: .

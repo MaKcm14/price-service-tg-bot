@@ -82,24 +82,24 @@ func ReadResponseBody(source io.Reader, logger *slog.Logger, serviceType string)
 	return respBody, nil
 }
 
-// Header defines the data structure of the extra-header.
-type Header struct {
+// header defines the data structure of the extra-header.
+type header struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
-// ExtraHeader defines the data structure of extra-headers that must be included in the async response.
-type ExtraHeaders struct {
-	Headers []Header `json:"headers"`
+// extraHeader defines the data structure of extra-headers that must be included in the async response.
+type extraHeaders struct {
+	Headers []header `json:"headers"`
 }
 
-func NewExtraHeaders(headers map[string]string) ExtraHeaders {
-	extraHeaders := ExtraHeaders{
-		make([]Header, 0, len(headers)),
+func newExtraHeaders(headers map[string]string) extraHeaders {
+	extraHeaders := extraHeaders{
+		make([]header, 0, len(headers)),
 	}
 
 	for key, val := range headers {
-		extraHeaders.Headers = append(extraHeaders.Headers, Header{
+		extraHeaders.Headers = append(extraHeaders.Headers, header{
 			Key:   key,
 			Value: val,
 		})
