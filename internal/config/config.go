@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/redis"
 	"github.com/joho/godotenv"
 )
 
@@ -11,6 +12,7 @@ import (
 type Settings struct {
 	TgBotToken         string
 	DSN                string
+	CacheConf          redis.RedisInitConf
 	PriceServiceSocket string
 	Brokers            []string
 }

@@ -1,4 +1,4 @@
-package kafka
+package hand
 
 import (
 	"encoding/json"
@@ -9,28 +9,20 @@ import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
 )
 
-// Handler defines the logic of handling the kafka's messages.
-type Handler struct {
+// ProductsHandler defines the logic of handling the kafka's messages.
+type ProductsHandler struct {
 	logger *slog.Logger
 	prods  chan *tgbot.TrackedProduct
 }
 
-func NewHandler(log *slog.Logger, prods chan *tgbot.TrackedProduct) *Handler {
-	return &Handler{
+func NewProductsHandler(log *slog.Logger, prods chan *tgbot.TrackedProduct) *ProductsHandler {
+	return &ProductsHandler{
 		logger: log,
 		prods:  prods,
 	}
 }
 
-func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (p *ProductsHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
 		trackedProduct := &tgbot.TrackedProduct{}
 
@@ -43,9 +35,17 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 
 		json.Unmarshal(message.Value, &trackedProduct.Response)
 
-		h.prods <- trackedProduct
+		p.prods <- trackedProduct
 
 		session.Commit()
 	}
+	return nil
+}
+
+func (p *ProductsHandler) Setup(_ sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (p *ProductsHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }

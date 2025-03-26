@@ -10,14 +10,13 @@ import (
 
 // RedisRepo defines the logic of the cache interaction.
 type RedisRepo struct {
-	conf redisConfig
 	userRepo
 }
 
-func New(ctx context.Context, logger *slog.Logger) (RedisRepo, error) {
+func New(ctx context.Context, logger *slog.Logger, redisConf RedisInitConf) (RedisRepo, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     redisConf.Socket,
+		Password: redisConf.PWD,
 		DB:       0,
 	})
 
@@ -29,7 +28,6 @@ func New(ctx context.Context, logger *slog.Logger) (RedisRepo, error) {
 	conf := newRedisConfig(logger, client)
 
 	return RedisRepo{
-		conf: conf,
 		userRepo: userRepo{
 			favoriteProdsRepo: newFavoriteProdsRepo(conf),
 		},

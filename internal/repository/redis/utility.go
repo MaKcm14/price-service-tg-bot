@@ -11,6 +11,12 @@ const (
 	favProductsKeyTemplate = "products:"
 )
 
+// RedisInitConf defines the main init redis's config.
+type RedisInitConf struct {
+	Socket string
+	PWD    string
+}
+
 // redisConfig defines the main redis configuration.
 type redisConfig struct {
 	log  *slog.Logger

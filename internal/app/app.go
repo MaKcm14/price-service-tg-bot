@@ -34,6 +34,7 @@ func NewService() *Service {
 		conf.ConfigDSN("DSN"),
 		conf.ConfigSocket("PRICE_SERVICE_SOCKET"),
 		conf.ConfigBrokers("BROKERS"),
+		conf.ConfigRedisInfo("CACHE_SOCKET", "CACHE_PWD"),
 	)
 
 	bot, dbConn := mustSetBot(log, config)
@@ -73,7 +74,7 @@ func mustSetLogger() (*slog.Logger, *os.File) {
 func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.PostgreSQLRepo) {
 	log.Info("connecting to the DB begun")
 
-	dbConn, err := postgres.New(context.Background(), config.DSN, log)
+	dbConn, err := postgres.New(context.Background(), config.DSN, config.CacheConf, log)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error starting the DB: %v", err))
@@ -82,7 +83,9 @@ func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.
 
 	products := make(chan *tgbot.TrackedProduct)
 
-	reader, err := kafka.NewConsumer(config.Brokers, log, products)
+	reader, err := kafka.NewConsumer(config.Brokers, log,
+		kafka.ConfigProductHandler(log, products),
+	)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of Kafka: %v", err))

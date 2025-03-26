@@ -140,8 +140,8 @@ func (u userRepo) GetFavoriteProducts(ctx context.Context, chatID int64) (map[in
 	}
 
 	return u.getFavoriteProducts(ctx, userID{
-		UserID: id,
-		ChatID: chatID,
+		userID: id,
+		chatID: chatID,
 	})
 }
 
@@ -157,7 +157,7 @@ func (u userRepo) AddFavoriteProducts(ctx context.Context, chatID int64, product
 	}
 
 	return u.addFavoriteProducts(ctx, userID{
-		UserID: id,
-		ChatID: chatID,
+		userID: id,
+		chatID: chatID,
 	}, products)
 }

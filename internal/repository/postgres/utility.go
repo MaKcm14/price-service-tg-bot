@@ -6,18 +6,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// user defines the main user's ids:
+// chatID - user's tgID;
+// userID - user's DB id.
+type userID struct {
+	chatID int64
+	userID int64
+}
+
 // postgresConfig defines the main postgres DB configuration.
 type postgresConfig struct {
 	pool   *pgxpool.Pool
 	logger *slog.Logger
-}
-
-// user defines the main user's ids:
-// chatID - user's tgID;
-// UserID - user's DB id.
-type userID struct {
-	ChatID int64
-	UserID int64
 }
 
 func newPostgresConfig(pool *pgxpool.Pool, log *slog.Logger) postgresConfig {

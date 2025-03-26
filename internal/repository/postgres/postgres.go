@@ -17,7 +17,7 @@ type PostgreSQLRepo struct {
 	userRepo
 }
 
-func New(ctx context.Context, dsn string, log *slog.Logger) (PostgreSQLRepo, error) {
+func New(ctx context.Context, dsn string, redisConf redis.RedisInitConf, log *slog.Logger) (PostgreSQLRepo, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 
 	if err != nil {
@@ -34,7 +34,7 @@ func New(ctx context.Context, dsn string, log *slog.Logger) (PostgreSQLRepo, err
 		return PostgreSQLRepo{}, ErrDBConnection
 	}
 
-	cache, err := redis.New(ctx, log)
+	cache, err := redis.New(ctx, log, redisConf)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of starting the redis: %s", err))

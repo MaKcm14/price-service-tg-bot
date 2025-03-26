@@ -6,18 +6,19 @@ import (
 	"log/slog"
 
 	"github.com/IBM/sarama"
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
 )
 
 // Consumer defines the logic of kafka's reading messages.
 type Consumer struct {
-	cons   sarama.ConsumerGroup
-	logger *slog.Logger
-	prods  chan *tgbot.TrackedProduct
+	cons         sarama.ConsumerGroup
+	logger       *slog.Logger
+	prodsHandler sarama.ConsumerGroupHandler
 }
 
-func NewConsumer(brokers []string, log *slog.Logger, prods chan *tgbot.TrackedProduct) (Consumer, error) {
+func NewConsumer(brokers []string, log *slog.Logger, configs ...ConfigHandler) (Consumer, error) {
 	const op = "kafka.new-consumer"
+
+	res := Consumer{}
 
 	conf := sarama.NewConfig()
 
@@ -33,20 +34,22 @@ func NewConsumer(brokers []string, log *slog.Logger, prods chan *tgbot.TrackedPr
 		return Consumer{}, fmt.Errorf("error of the %s: %w: %s", op, ErrKafkaConnection, err)
 	}
 
-	return Consumer{
-		cons:   consumer,
-		logger: log,
-		prods:  prods,
-	}, nil
+	for _, config := range configs {
+		config(&res)
+	}
+
+	res.logger = log
+	res.cons = consumer
+
+	return res, nil
 }
 
 // ReadProducts reads the messages from the Kafka cluster.
 func (c Consumer) ReadProducts(ctx context.Context) {
 	const op = "kafka.read-products"
 
-	handler := NewHandler(c.logger, c.prods)
 	for {
-		if err := c.cons.Consume(ctx, []string{productsTopicName}, handler); err != nil {
+		if err := c.cons.Consume(ctx, []string{productsTopicName}, c.prodsHandler); err != nil {
 			c.logger.Warn(fmt.Sprintf("error of %s: %s", op, err))
 		}
 	}

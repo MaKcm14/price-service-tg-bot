@@ -9,15 +9,14 @@ import (
 // ConfigOpt configs the option for the app's start.
 type ConfigOpt func(st *Settings) error
 
-func ConfigBotToken(key string) ConfigOpt {
+func ConfigBotToken(tokenKey string) ConfigOpt {
 	return func(st *Settings) error {
 		const errVar = "check this var is set or its value is not empty and try again"
-		tokenName := key
 
-		val := os.Getenv(tokenName)
+		val := os.Getenv(tokenKey)
 
 		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", tokenName, errVar)
+			return fmt.Errorf("error of %s var: %v", tokenKey, errVar)
 		}
 		st.TgBotToken = val
 
@@ -25,15 +24,14 @@ func ConfigBotToken(key string) ConfigOpt {
 	}
 }
 
-func ConfigDSN(key string) ConfigOpt {
+func ConfigDSN(dsnKey string) ConfigOpt {
 	return func(st *Settings) error {
 		const errVar = "check this var is set or its value is not empty and try again"
-		dsnName := key
 
-		val := os.Getenv(dsnName)
+		val := os.Getenv(dsnKey)
 
 		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", dsnName, errVar)
+			return fmt.Errorf("error of %s var: %v", dsnKey, errVar)
 		}
 		st.DSN = val
 
@@ -41,15 +39,36 @@ func ConfigDSN(key string) ConfigOpt {
 	}
 }
 
-func ConfigSocket(key string) ConfigOpt {
+func ConfigRedisInfo(socketKey, pwdKey string) ConfigOpt {
 	return func(st *Settings) error {
 		const errVar = "check this var is set or its value is not empty and try again"
-		socketName := key
 
-		val := os.Getenv(socketName)
+		socketVal := os.Getenv(socketKey)
+
+		if len(socketVal) == 0 {
+			return fmt.Errorf("error of %s var: %v", socketKey, errVar)
+		}
+		st.CacheConf.Socket = socketVal
+
+		pwdVal := os.Getenv(pwdKey)
+
+		if len(pwdVal) == 0 {
+			return fmt.Errorf("error of %s var: %v", pwdKey, errVar)
+		}
+		st.CacheConf.PWD = pwdVal
+
+		return nil
+	}
+}
+
+func ConfigSocket(socketKey string) ConfigOpt {
+	return func(st *Settings) error {
+		const errVar = "check this var is set or its value is not empty and try again"
+
+		val := os.Getenv(socketKey)
 
 		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", socketName, errVar)
+			return fmt.Errorf("error of %s var: %v", socketKey, errVar)
 		}
 		st.PriceServiceSocket = val
 
@@ -57,14 +76,14 @@ func ConfigSocket(key string) ConfigOpt {
 	}
 }
 
-func ConfigBrokers(key string) ConfigOpt {
+func ConfigBrokers(brokersKey string) ConfigOpt {
 	return func(st *Settings) error {
 		const errVar = "check this var is set or its value is not empty and try again"
 
-		val := os.Getenv(key)
+		val := os.Getenv(brokersKey)
 
 		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", key, errVar)
+			return fmt.Errorf("error of %s var: %v", brokersKey, errVar)
 		}
 		st.Brokers = strings.Split(val, " ")
 

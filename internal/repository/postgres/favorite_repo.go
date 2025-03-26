@@ -30,7 +30,7 @@ func (f favoriteProdsRepo) getUserProducts(ctx context.Context, id userID) (map[
 	prods := make(map[int]entities.Product, 100)
 
 	res, err := f.conf.pool.Query(ctx, "SELECT f.product_id, f.product_name, f.product_link, f.base_price, f.product_brand, f.supplier "+
-		"FROM users as u JOIN favorites as f ON f.user_id=u.id and u.id=$1", id.UserID)
+		"FROM users as u JOIN favorites as f ON f.user_id=u.id and u.id=$1", id.userID)
 
 	if err != nil {
 		f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
@@ -60,14 +60,14 @@ func (f favoriteProdsRepo) getUserProducts(ctx context.Context, id userID) (map[
 func (f favoriteProdsRepo) updateCacheInfo(ctx context.Context, id userID, prods map[int]entities.Product) error {
 	const op = "postgres.update-cache-info"
 
-	err := f.cache.AddUserFavoriteProducts(ctx, id.ChatID, prods)
+	err := f.cache.AddUserFavoriteProducts(ctx, id.chatID, prods)
 
 	if err != nil {
 		f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 		return err
 	}
 
-	err = f.cache.SetTTL(ctx, id.ChatID, time.Duration(time.Hour*5))
+	err = f.cache.SetTTL(ctx, id.chatID, time.Duration(time.Hour*5))
 
 	if err != nil {
 		f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
@@ -80,10 +80,10 @@ func (f favoriteProdsRepo) updateCacheInfo(ctx context.Context, id userID, prods
 func (f favoriteProdsRepo) getFavoriteProducts(ctx context.Context, id userID) (map[int]entities.Product, error) {
 	const op = "postgres.get-favorite-products"
 
-	if flagExpired, err := f.cache.IsKeyExpired(ctx, id.ChatID); err != nil {
+	if flagExpired, err := f.cache.IsKeyExpired(ctx, id.chatID); err != nil {
 		f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
 	} else if !flagExpired {
-		products, err := f.cache.GetUserFavoriteProducts(ctx, id.ChatID)
+		products, err := f.cache.GetUserFavoriteProducts(ctx, id.chatID)
 
 		if err == nil {
 			return products, nil
@@ -115,7 +115,7 @@ func (f favoriteProdsRepo) addFavoriteProducts(ctx context.Context, id userID, p
 	const op = "postgres.add-favorite-products"
 	const query = "INSERT INTO favorites (product_name, product_link, base_price, product_brand, supplier, user_id)\n"
 
-	err := f.cache.FlushUserCache(ctx, id.ChatID)
+	err := f.cache.FlushUserCache(ctx, id.chatID)
 
 	if err != nil {
 		f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
