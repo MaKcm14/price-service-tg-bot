@@ -16,8 +16,7 @@ import (
 type favoriteMode struct {
 	botConf *tgBotConfigs
 	logger  *slog.Logger
-
-	repo services.Repository
+	repo    services.Repository
 }
 
 func newFavoriteMode(log *slog.Logger, bot *tgBotConfigs, repo services.Repository) favoriteMode {

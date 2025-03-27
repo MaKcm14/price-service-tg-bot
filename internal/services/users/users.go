@@ -1,18 +1,20 @@
-package services
+package users
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 )
 
 // UserInteractor defines the logic of processing the some user's actions.
 type UserInteractor struct {
 	logger *slog.Logger
-	repo   Repository
+	repo   services.Repository
 }
 
-func NewUserInteractor(log *slog.Logger, repo Repository) UserInteractor {
+func NewUserInteractor(log *slog.Logger, repo services.Repository) UserInteractor {
 	return UserInteractor{
 		logger: log,
 		repo:   repo,

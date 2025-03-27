@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"github.com/IBM/sarama"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
 	"github.com/MaKcm14/price-service/pkg/entities"
 )
@@ -44,7 +45,7 @@ type (
 
 	// Reader defines the repository kafka reader object abstraction.
 	Reader interface {
-		ReadProducts(ctx context.Context)
+		ReadProducts(ctx context.Context, handler sarama.ConsumerGroupHandler)
 		Closer
 	}
 

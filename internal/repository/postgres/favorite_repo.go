@@ -125,7 +125,7 @@ func (f favoriteProdsRepo) addFavoriteProducts(ctx context.Context, id userID, p
 
 		_, err = f.conf.pool.Exec(ctx, fmt.Sprintf("%sVALUES ('%s', '%s', %d, '%s', '%s', %d)", query,
 			product.Name, product.Links.URL, product.Price.BasePrice,
-			product.Brand, product.Supplier, id))
+			product.Brand, product.Supplier, id.userID))
 
 		if err != nil {
 			f.conf.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))

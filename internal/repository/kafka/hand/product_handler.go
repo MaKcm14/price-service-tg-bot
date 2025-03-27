@@ -6,16 +6,16 @@ import (
 	"strconv"
 
 	"github.com/IBM/sarama"
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/controller/tgbot"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka"
 )
 
 // ProductsHandler defines the logic of handling the kafka's messages.
 type ProductsHandler struct {
 	logger *slog.Logger
-	prods  chan *tgbot.TrackedProduct
+	prods  chan *kafka.TrackedProduct
 }
 
-func NewProductsHandler(log *slog.Logger, prods chan *tgbot.TrackedProduct) *ProductsHandler {
+func NewProductsHandler(log *slog.Logger, prods chan *kafka.TrackedProduct) *ProductsHandler {
 	return &ProductsHandler{
 		logger: log,
 		prods:  prods,
@@ -24,7 +24,7 @@ func NewProductsHandler(log *slog.Logger, prods chan *tgbot.TrackedProduct) *Pro
 
 func (p *ProductsHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		trackedProduct := &tgbot.TrackedProduct{}
+		trackedProduct := &kafka.TrackedProduct{}
 
 		for _, header := range message.Headers {
 			if string(header.Key) == "ChatID" {

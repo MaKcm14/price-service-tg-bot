@@ -20,8 +20,8 @@ type bestPriceMode struct {
 	api     services.ApiInteractor
 }
 
-func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInteractor) *bestPriceMode {
-	return &bestPriceMode{
+func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInteractor) bestPriceMode {
+	return bestPriceMode{
 		botConf: bot,
 		logger:  log,
 		api:     api,
@@ -29,7 +29,7 @@ func newBestPriceMode(log *slog.Logger, bot *tgBotConfigs, api services.ApiInter
 }
 
 // mode is the action on the pressing the best-price button.
-func (b *bestPriceMode) mode(chatID int64) {
+func (b bestPriceMode) mode(chatID int64) {
 	if _, flagExist := b.botConf.users[chatID]; !flagExist {
 		b.botConf.users[chatID] = newUserConfig()
 	}
@@ -66,7 +66,21 @@ func (b *bestPriceMode) mode(chatID int64) {
 }
 
 // productSetter defines the logic of setting the product's name.
-func (b *bestPriceMode) productSetter(chatID int64) {
+func (b bestPriceMode) productSetter(chatID int64) {
+	if len(b.botConf.users[chatID].request.Markets) == 0 {
+		message := tgbotapi.NewMessage(chatID, fmt.Sprint("*Упс... Кажется, ты не задал ни один маркет поиска 🛒*\n\n",
+			"*Задай сначала их, а затем товар 📦*",
+		))
+		message.ParseMode = markDown
+		message.ReplyMarkup = b.botConf.getKeyBoardWithMarkets(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+		)
+
+		b.botConf.bot.Send(message)
+		return
+	}
+
 	b.botConf.users[chatID].lastAction = productSetter
 
 	message := tgbotapi.NewMessage(chatID,
@@ -77,7 +91,7 @@ func (b *bestPriceMode) productSetter(chatID int64) {
 }
 
 // errorOfSearch defines the logic of searching's error processing.
-func (b *bestPriceMode) errorOfSearchMode(chatID int64, err error) {
+func (b bestPriceMode) errorOfSearchMode(chatID int64, err error) {
 	var errText = "*Упс... Похоже, произошла ошибка 😞*"
 
 	if errors.Is(err, api.ErrApiInteraction) {
@@ -96,7 +110,7 @@ func (b *bestPriceMode) errorOfSearchMode(chatID int64, err error) {
 }
 
 // searchReply defines the logic of searching's reply.
-func (b *bestPriceMode) searchModeReply(chatID int64) {
+func (b bestPriceMode) searchModeReply(chatID int64) {
 	iterInstrs := []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
 		"❓*Как использовать поиск?*\n",
@@ -125,7 +139,7 @@ func (b *bestPriceMode) searchModeReply(chatID int64) {
 }
 
 // startSearch defines the logic of searching the products using the finished request.
-func (b *bestPriceMode) startSearch(chatID int64) {
+func (b bestPriceMode) startSearch(chatID int64) {
 	const op = "tgbot.best-price-search"
 
 	b.botConf.users[chatID].lastAction = startSearch
@@ -152,7 +166,7 @@ func (b *bestPriceMode) startSearch(chatID int64) {
 }
 
 // showRequest shows the finished request that will use to get the products.
-func (p *bestPriceMode) showRequest(chatID int64) {
+func (p bestPriceMode) showRequest(chatID int64) {
 	p.botConf.users[chatID].lastAction = showRequest
 
 	request := "✔*Запрос готов! 📝*\n\n*✔Маркеты поиска 🛒*\n"
@@ -182,7 +196,7 @@ func (p *bestPriceMode) showRequest(chatID int64) {
 }
 
 // setRequest sets the product query request for the current ChatID.
-func (p *bestPriceMode) setRequest(update *tgbotapi.Update) {
+func (p bestPriceMode) setRequest(update *tgbotapi.Update) {
 	var chatID = update.Message.Chat.ID
 
 	request := p.botConf.users[chatID].request

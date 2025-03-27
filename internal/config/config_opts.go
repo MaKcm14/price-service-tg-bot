@@ -9,16 +9,26 @@ import (
 // ConfigOpt configs the option for the app's start.
 type ConfigOpt func(st *Settings) error
 
+func configEnv(key string) (string, error) {
+	const errVar = "check this var is set or its value is not empty and try again"
+
+	val := os.Getenv(key)
+
+	if len(val) == 0 {
+		return "", fmt.Errorf("error of %s var: %v", key, errVar)
+	}
+
+	return val, nil
+}
+
 func ConfigBotToken(tokenKey string) ConfigOpt {
 	return func(st *Settings) error {
-		const errVar = "check this var is set or its value is not empty and try again"
+		tokenVal, err := configEnv(tokenKey)
 
-		val := os.Getenv(tokenKey)
-
-		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", tokenKey, errVar)
+		if err != nil {
+			return err
 		}
-		st.TgBotToken = val
+		st.TgBotToken = tokenVal
 
 		return nil
 	}
@@ -26,14 +36,12 @@ func ConfigBotToken(tokenKey string) ConfigOpt {
 
 func ConfigDSN(dsnKey string) ConfigOpt {
 	return func(st *Settings) error {
-		const errVar = "check this var is set or its value is not empty and try again"
+		dsnVal, err := configEnv(dsnKey)
 
-		val := os.Getenv(dsnKey)
-
-		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", dsnKey, errVar)
+		if err != nil {
+			return err
 		}
-		st.DSN = val
+		st.DSN = dsnVal
 
 		return nil
 	}
@@ -41,21 +49,14 @@ func ConfigDSN(dsnKey string) ConfigOpt {
 
 func ConfigRedisInfo(socketKey, pwdKey string) ConfigOpt {
 	return func(st *Settings) error {
-		const errVar = "check this var is set or its value is not empty and try again"
+		socketVal, err := configEnv(socketKey)
 
-		socketVal := os.Getenv(socketKey)
-
-		if len(socketVal) == 0 {
-			return fmt.Errorf("error of %s var: %v", socketKey, errVar)
+		if err != nil {
+			return err
 		}
+
 		st.CacheConf.Socket = socketVal
-
-		pwdVal := os.Getenv(pwdKey)
-
-		if len(pwdVal) == 0 {
-			return fmt.Errorf("error of %s var: %v", pwdKey, errVar)
-		}
-		st.CacheConf.PWD = pwdVal
+		st.CacheConf.PWD = os.Getenv(pwdKey)
 
 		return nil
 	}
@@ -63,14 +64,12 @@ func ConfigRedisInfo(socketKey, pwdKey string) ConfigOpt {
 
 func ConfigSocket(socketKey string) ConfigOpt {
 	return func(st *Settings) error {
-		const errVar = "check this var is set or its value is not empty and try again"
+		socketVal, err := configEnv(socketKey)
 
-		val := os.Getenv(socketKey)
-
-		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", socketKey, errVar)
+		if err != nil {
+			return err
 		}
-		st.PriceServiceSocket = val
+		st.PriceServiceSocket = socketVal
 
 		return nil
 	}
@@ -78,14 +77,12 @@ func ConfigSocket(socketKey string) ConfigOpt {
 
 func ConfigBrokers(brokersKey string) ConfigOpt {
 	return func(st *Settings) error {
-		const errVar = "check this var is set or its value is not empty and try again"
+		brokersVal, err := configEnv(brokersKey)
 
-		val := os.Getenv(brokersKey)
-
-		if len(val) == 0 {
-			return fmt.Errorf("error of %s var: %v", brokersKey, errVar)
+		if err != nil {
+			return err
 		}
-		st.Brokers = strings.Split(val, " ")
+		st.Brokers = strings.Split(brokersVal, " ")
 
 		return nil
 	}

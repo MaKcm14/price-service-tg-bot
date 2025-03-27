@@ -8,24 +8,37 @@ import (
 	"time"
 
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/entities/dto"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka/hand"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // trackedMode defines the logic of the tracked mode user's interaction.
 type trackedMode struct {
-	botConf *tgBotConfigs
-	logger  *slog.Logger
-	repo    services.Repository
-	api     services.ApiInteractor
+	botConf      *tgBotConfigs
+	logger       *slog.Logger
+	repo         services.Repository
+	api          services.ApiInteractor
+	trackedProds chan *kafka.TrackedProduct
+	reader       services.Reader
 }
 
-func newTrackedMode(botConf *tgBotConfigs, repo services.Repository, logger *slog.Logger, api services.ApiInteractor) trackedMode {
+func newTrackedMode(
+	botConf *tgBotConfigs,
+	repo services.Repository,
+	logger *slog.Logger,
+	api services.ApiInteractor,
+	prods chan *kafka.TrackedProduct,
+	reader services.Reader,
+) trackedMode {
 	return trackedMode{
-		botConf: botConf,
-		logger:  logger,
-		repo:    repo,
-		api:     api,
+		botConf:      botConf,
+		logger:       logger,
+		repo:         repo,
+		api:          api,
+		trackedProds: prods,
+		reader:       reader,
 	}
 }
 
@@ -73,6 +86,21 @@ func (t trackedMode) trackedModeMenu(chatID int64) {
 	t.botConf.bot.Send(message)
 }
 
+// modeErrHandler defines the logic of handling the errors.
+func (t trackedMode) modeErrHandler(chatID int64, menu string) {
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	message := tgbotapi.NewMessage(chatID, menu)
+
+	message.ParseMode = markDown
+	message.ReplyMarkup = keyboard
+
+	t.botConf.bot.Send(message)
+}
+
 // mode defines the logic of start the setting the tracked products.
 func (t trackedMode) mode(chatID int64) {
 	const op = "tgbot.add-tracked-product"
@@ -85,36 +113,14 @@ func (t trackedMode) mode(chatID int64) {
 
 	if flagExist, err := t.repo.IsTrackedProductExists(context.Background(), chatID); err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		menu := fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
-			"*Попробуй зайти позже...*! ⏳\n\n")
 
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
-
-		message := tgbotapi.NewMessage(chatID, menu)
-
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
+		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
+			"*Попробуй зайти позже...*! ⏳\n\n"))
 		return
 
 	} else if flagExist {
-		menu := fmt.Sprint("*Упс... Кажется, ты уже поставил уведомление на товар!\n\n*",
-			"*Чтобы переустановить уведомление, сними его*! 🔔\n\n")
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
-
-		message := tgbotapi.NewMessage(chatID, menu)
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
+		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Кажется, ты уже поставил уведомление на товар!\n\n*",
+			"*Чтобы переустановить уведомление, сними его*! 🔔\n\n"))
 		return
 	}
 
@@ -148,6 +154,20 @@ func (t trackedMode) mode(chatID int64) {
 
 // productSetter defines the logic of setting the tracked product's query.
 func (t trackedMode) productSetter(chatID int64) {
+	if len(t.botConf.users[chatID].request.Markets) == 0 {
+		message := tgbotapi.NewMessage(chatID, fmt.Sprint("*Упс... Кажется, ты не задал ни один маркет поиска 🛒*\n\n",
+			"*Задай сначала их, а затем товар 📦*",
+		))
+		message.ParseMode = markDown
+		message.ReplyMarkup = t.botConf.getKeyBoardWithMarkets(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+		)
+
+		t.botConf.bot.Send(message)
+		return
+	}
+
 	t.botConf.users[chatID].lastAction = productSetter
 
 	message := tgbotapi.NewMessage(chatID,
@@ -178,20 +198,10 @@ func (t trackedMode) showRequest(chatID int64) {
 
 	if err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		menu := fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
-			"*Попробуй зайти позже...*! ⏳\n\n")
 
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
+		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
+			"*Попробуй зайти позже...*! ⏳\n\n"))
 
-		message := tgbotapi.NewMessage(chatID, menu)
-
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
 		return
 	}
 
@@ -204,7 +214,6 @@ func (t trackedMode) showRequest(chatID int64) {
 	request += fmt.Sprintf("\n*Товар: %s* 📦\n", t.botConf.users[chatID].request.Query)
 
 	request += "\n*Диапазон цен:* минимально возможные цены 🎚️\n\n"
-
 	request += "*Если ты заметил, что ошибся в запросе - сними уведомление и собери заново!* 👇"
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -234,37 +243,16 @@ func (t trackedMode) getTrackedProduct(chatID int64) {
 
 	if err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		menu := fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
-			"*Попробуй зайти позже...*! ⏳\n\n")
 
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
-
-		message := tgbotapi.NewMessage(chatID, menu)
-
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
-
+		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
+			"*Попробуй зайти позже...*! ⏳\n\n"))
 		return
+
 	} else if !flagExist {
-		menu := fmt.Sprint("*Упс... Похоже, у тебя еще нет отслеживаемого товара 🔔*\n\n",
-			"*Давай установим его*! 👇\n\n")
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+		t.modeErrHandler(chatID,
+			fmt.Sprint("*Упс... Похоже, у тебя еще нет отслеживаемого товара 🔔*\n\n",
+				"*Давай установим его*! 👇\n\n"),
 		)
-
-		message := tgbotapi.NewMessage(chatID, menu)
-
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
 		return
 	}
 
@@ -304,20 +292,8 @@ func (t trackedMode) deleteTrackedProduct(chatID int64) {
 
 	if err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		menu := fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
-			"*Попробуй зайти позже...*! ⏳\n\n")
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		)
-
-		message := tgbotapi.NewMessage(chatID, menu)
-
-		message.ParseMode = markDown
-		message.ReplyMarkup = keyboard
-
-		t.botConf.bot.Send(message)
+		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
+			"*Попробуй зайти позже...*! ⏳\n\n"))
 		return
 	}
 
@@ -336,36 +312,67 @@ func (t trackedMode) deleteTrackedProduct(chatID int64) {
 	t.botConf.bot.Send(message)
 }
 
-// sendRequests defines the logic of sending the async requests.
-func (t trackedMode) sendAsyncRequests() {
-	const op = "tgbot.send-async-requests"
-
-	time.Sleep(time.Second * 90)
-
-	for {
-		timeStart := time.Now()
-		res, err := t.repo.GetUsersTrackedProducts(context.Background())
-
-		if err != nil {
-			t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-			time.Sleep(time.Hour * 24)
-			continue
-		}
-
-		for chatID, request := range res {
-			err = t.api.SendAsyncBestPriceRequest(request, map[string]string{
-				"ChatID": fmt.Sprint(chatID),
-			})
-
-			if err != nil {
-				t.logger.Warn(fmt.Sprintf("error of the %s: %s", op, err))
-			}
-
-			time.Sleep(time.Minute * 1)
-		}
-
-		for time.Since(timeStart) < time.Hour*24 {
-			continue
-		}
+// showTrackedProduct defines the logic of showing the tracked products.
+func (t trackedMode) showTrackedProduct(chatID int64) {
+	iterInstrs := []string{
+		"*Я вернулся с хорошими новостями!* 😊\n\n",
+		"*Твой отслеживамый товар получен!*\n\n",
+		"❓*Как использовать поиск?*\n",
+		"✔ Нажимай на тот маркет, товар которого хочешь посмотреть\n",
+		"✔ Если хочешь добавить товар в Избранное, нажми на кнопку *Добавить*\n\n",
+		"*Давай смотреть!* 👇",
 	}
+
+	buffer := bytes.Buffer{}
+
+	for _, instruct := range iterInstrs {
+		buffer.WriteString(instruct)
+	}
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Смотреть товары 📦", productsIter)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
+
+	message := tgbotapi.NewMessage(chatID, buffer.String())
+
+	message.ParseMode = markDown
+	message.ReplyMarkup = keyboard
+
+	t.botConf.bot.Send(message)
+}
+
+// readTrackedProducts reads the tracked products from the chan connected with the kafka's consumer.
+func (t trackedMode) readTrackedProducts() {
+	go t.reader.ReadProducts(context.Background(), hand.NewProductsHandler(t.logger, t.trackedProds))
+
+	for products := range t.trackedProds {
+		if _, flagExist := t.botConf.users[products.ChatID]; !flagExist {
+			t.botConf.users[products.ChatID] = newUserConfig()
+		}
+
+		for t.botConf.users[products.ChatID].lastAction == showRequest {
+			continue
+		}
+
+		t.botConf.users[products.ChatID].sample.sample = products.Response.Sample
+
+		markets := make(map[string]int)
+
+		for _, market := range t.botConf.users[products.ChatID].request.Markets {
+			markets[market] = 0
+		}
+
+		t.botConf.users[products.ChatID].sample.samplePtr = markets
+
+		t.showTrackedProduct(products.ChatID)
+
+		time.Sleep(time.Minute * 1)
+	}
+}
+
+// close releases the resources of the tracked products.
+func (t trackedMode) close() {
+	t.reader.Close()
+	close(t.trackedProds)
 }

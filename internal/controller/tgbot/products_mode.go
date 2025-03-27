@@ -24,13 +24,6 @@ func newProductsMode(bot *tgBotConfigs) productsMode {
 func (p *productsMode) marketSetterMode(chatID int64) {
 	p.botConf.users[chatID].lastAction = marketSetterMode
 
-	// keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-	// )
-
 	keyboardMarketSetter := p.botConf.getKeyBoardWithMarkets(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
@@ -76,13 +69,6 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 		buffer.WriteString(desc)
 	}
 
-	// keyboard := tgbotapi.NewInlineKeyboardMarkup(
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить товар в избранное ⭐", addToFavorite)),
-	// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-	// )
-
 	keyboard := p.botConf.getKeyBoardWithMarkets(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить товар в избранное ⭐", addToFavorite)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
@@ -100,11 +86,7 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 func (p *productsMode) productsIter(chatID int64, market string) {
 	if p.botConf.users[chatID].lastAction != productsIter {
 		choiceText := "*Выбери, откуда ты хочешь получить товар* 👇"
-		// keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-		// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
-		// 	tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-		// )
+
 		keyboard := p.botConf.getKeyBoardWithMarkets(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 		)

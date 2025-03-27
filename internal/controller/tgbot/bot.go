@@ -8,7 +8,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services/actor"
 )
 
 // TgBot defines the bot's logic.
@@ -16,17 +18,16 @@ type TgBot struct {
 	logger  *slog.Logger
 	botConf *tgBotConfigs
 
-	userInteractor services.UserConfiger
-	api            services.ApiInteractor
+	favorite favoriteMode
+	track    trackedMode
 
-	favorite  favoriteMode
 	prodsMode productsMode
-	set       setter
-	search    searcher
+	bestPrice bestPriceMode
 
-	track        trackedMode
-	reader       services.Reader
-	trackedProds chan *TrackedProduct
+	set    setter
+	search searcher
+	uinter services.UserConfiger
+	api    services.Actor
 }
 
 func New(
@@ -35,7 +36,7 @@ func New(
 	interactor services.UserConfiger,
 	api services.ApiInteractor,
 	repo services.Repository,
-	trackedProducts chan *TrackedProduct,
+	trackedProducts chan *kafka.TrackedProduct,
 	reader services.Reader,
 ) (*TgBot, error) {
 	logger.Info("initializing the bot begun")
@@ -55,15 +56,14 @@ func New(
 	}
 
 	return &TgBot{
-		botConf:        botConf,
-		logger:         logger,
-		userInteractor: interactor,
-		favorite:       newFavoriteMode(logger, botConf, repo),
-		prodsMode:      newProductsMode(botConf),
-		track:          newTrackedMode(botConf, repo, logger, api),
-		api:            api,
-		trackedProds:   trackedProducts,
-		reader:         reader,
+		botConf:   botConf,
+		logger:    logger,
+		uinter:    interactor,
+		favorite:  newFavoriteMode(logger, botConf, repo),
+		prodsMode: newProductsMode(botConf),
+		track:     newTrackedMode(botConf, repo, logger, api, trackedProducts, reader),
+		bestPrice: newBestPriceMode(logger, botConf, api),
+		api:       actor.NewAPI(logger, repo, api),
 	}, nil
 }
 
@@ -76,9 +76,8 @@ func (t *TgBot) Run() {
 
 	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
 
-	go t.readTrackedProducts()
-	go t.reader.ReadProducts(context.Background())
-	go t.track.sendAsyncRequests()
+	go t.track.readTrackedProducts()
+	go t.api.SendTrackedProducts(context.Background())
 
 	for update := range updates {
 		if update.Message != nil {
@@ -109,12 +108,11 @@ func (t *TgBot) Run() {
 			case bestPriceModeData, addTrackedProductData:
 
 				if update.CallbackQuery.Data == bestPriceModeData {
-					bestPrice := newBestPriceMode(t.logger, t.botConf, t.api)
-					t.set = bestPrice
-					t.search = bestPrice
+					t.set = &t.bestPrice
+					t.search = &t.bestPrice
 
 				} else if update.CallbackQuery.Data == addTrackedProductData {
-					t.set = newTrackedMode(t.botConf, t.favorite.repo, t.logger, t.api)
+					t.set = t.track
 				}
 
 				t.set.mode(chatID)
@@ -170,6 +168,5 @@ func (t *TgBot) Run() {
 }
 
 func (t *TgBot) Close() {
-	t.reader.Close()
-	close(t.trackedProds)
+	t.track.close()
 }

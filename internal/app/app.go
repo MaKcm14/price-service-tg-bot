@@ -13,7 +13,7 @@ import (
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/api"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/postgres"
-	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services/users"
 )
 
 // Service defines the configured application that is ready to be started.
@@ -81,20 +81,19 @@ func mustSetBot(log *slog.Logger, config conf.Settings) (*tgbot.TgBot, postgres.
 		panic(err)
 	}
 
-	products := make(chan *tgbot.TrackedProduct)
+	products := make(chan *kafka.TrackedProduct)
 
-	reader, err := kafka.NewConsumer(config.Brokers, log,
-		kafka.ConfigProductHandler(log, products),
-	)
+	reader, err := kafka.NewConsumer(config.Brokers, log)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("error of Kafka: %v", err))
 		panic(err)
 	}
 
+	api := api.NewPriceServiceApi(config.PriceServiceSocket, log)
+
 	bot, err := tgbot.New(config.TgBotToken, log,
-		services.NewUserInteractor(log, dbConn),
-		api.NewPriceServiceApi(config.PriceServiceSocket, log),
+		users.NewUserInteractor(log, dbConn), api,
 		dbConn, products, reader)
 
 	if err != nil {

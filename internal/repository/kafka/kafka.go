@@ -10,15 +10,12 @@ import (
 
 // Consumer defines the logic of kafka's reading messages.
 type Consumer struct {
-	cons         sarama.ConsumerGroup
-	logger       *slog.Logger
-	prodsHandler sarama.ConsumerGroupHandler
+	cons   sarama.ConsumerGroup
+	logger *slog.Logger
 }
 
-func NewConsumer(brokers []string, log *slog.Logger, configs ...ConfigHandler) (Consumer, error) {
+func NewConsumer(brokers []string, log *slog.Logger) (Consumer, error) {
 	const op = "kafka.new-consumer"
-
-	res := Consumer{}
 
 	conf := sarama.NewConfig()
 
@@ -34,22 +31,18 @@ func NewConsumer(brokers []string, log *slog.Logger, configs ...ConfigHandler) (
 		return Consumer{}, fmt.Errorf("error of the %s: %w: %s", op, ErrKafkaConnection, err)
 	}
 
-	for _, config := range configs {
-		config(&res)
-	}
-
-	res.logger = log
-	res.cons = consumer
-
-	return res, nil
+	return Consumer{
+		logger: log,
+		cons:   consumer,
+	}, nil
 }
 
 // ReadProducts reads the messages from the Kafka cluster.
-func (c Consumer) ReadProducts(ctx context.Context) {
-	const op = "kafka.read-products"
+func (c Consumer) ReadProducts(ctx context.Context, handler sarama.ConsumerGroupHandler) {
+	const op = "kafka.read-messages"
 
 	for {
-		if err := c.cons.Consume(ctx, []string{productsTopicName}, c.prodsHandler); err != nil {
+		if err := c.cons.Consume(ctx, []string{productsTopicName}, handler); err != nil {
 			c.logger.Warn(fmt.Sprintf("error of %s: %s", op, err))
 		}
 	}
