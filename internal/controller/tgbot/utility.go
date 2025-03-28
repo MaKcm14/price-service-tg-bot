@@ -87,7 +87,7 @@ func newUserConfig() *userConfig {
 type tgBotConfigs struct {
 	users   map[int64]*userConfig
 	bot     *tgbotapi.BotAPI
-	markets map[string]string
+	markets entities.SupportedMarkets
 }
 
 func newTgBotConfigs(bot *tgbotapi.BotAPI, api services.ApiInteractor) (*tgBotConfigs, error) {
@@ -108,12 +108,14 @@ func newTgBotConfigs(bot *tgbotapi.BotAPI, api services.ApiInteractor) (*tgBotCo
 
 // getKeyBoardWithMarkets gets the keyboard with the markets that was given from the price-service api.
 func (c tgBotConfigs) getKeyBoardWithMarkets(buttons ...[]tgbotapi.InlineKeyboardButton) tgbotapi.InlineKeyboardMarkup {
-	marketsButton := make([][]tgbotapi.InlineKeyboardButton, 0, len(c.markets))
+	marketsButton := make([][]tgbotapi.InlineKeyboardButton, 0, len(c.markets.Markets))
 
-	for market, emoji := range c.markets {
+	for _, market := range c.markets.Markets {
 		marketsButton = append(marketsButton,
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", market, emoji), market)),
+				tgbotapi.NewInlineKeyboardButtonData(
+					fmt.Sprintf("%s %s", market.MarketName, market.Designation), market.MarketName),
+			),
 		)
 	}
 

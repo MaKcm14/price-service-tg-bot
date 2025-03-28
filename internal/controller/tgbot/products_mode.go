@@ -48,7 +48,6 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 	}
 
 	sample := p.botConf.users[chatID].sample.sample[market]
-
 	p.botConf.users[chatID].sample.samplePtr[market] = count + 1
 
 	productDesc := []string{

@@ -108,12 +108,10 @@ func (t trackedMode) mode(chatID int64) {
 	if _, flagExist := t.botConf.users[chatID]; !flagExist {
 		t.botConf.users[chatID] = newUserConfig()
 	}
-
 	t.botConf.users[chatID].lastAction = addTrackedProductData
 
 	if flagExist, err := t.repo.IsTrackedProductExists(context.Background(), chatID); err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-
 		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
 			"*Попробуй зайти позже...*! ⏳\n\n"))
 		return
@@ -141,6 +139,7 @@ func (t trackedMode) mode(chatID int64) {
 
 	keyboardMode := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать маркеты 🛒", marketSetterMode)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Отслеживаемые товары 🔔", trackedModeData)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
 
@@ -198,10 +197,8 @@ func (t trackedMode) showRequest(chatID int64) {
 
 	if err != nil {
 		t.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-
 		t.modeErrHandler(chatID, fmt.Sprint("*Упс... Похоже, произошла ошибка 😞*\n\n",
 			"*Попробуй зайти позже...*! ⏳\n\n"))
-
 		return
 	}
 
@@ -212,7 +209,6 @@ func (t trackedMode) showRequest(chatID int64) {
 	}
 
 	request += fmt.Sprintf("\n*Товар: %s* 📦\n", t.botConf.users[chatID].request.Query)
-
 	request += "\n*Диапазон цен:* минимально возможные цены 🎚️\n\n"
 	request += "*Если ты заметил, что ошибся в запросе - сними уведомление и собери заново!* 👇"
 
@@ -238,7 +234,6 @@ func (t trackedMode) getTrackedProduct(chatID int64) {
 	}
 
 	t.botConf.users[chatID].lastAction = getTrackedProdMode
-
 	product, flagExist, err := t.repo.GetTrackedProduct(context.Background(), chatID)
 
 	if err != nil {
@@ -261,7 +256,6 @@ func (t trackedMode) getTrackedProduct(chatID int64) {
 	for _, market := range product.Markets {
 		request += fmt.Sprintf("• %s\n", market)
 	}
-
 	request += fmt.Sprintf("\n*Товар: %s* 📦\n", product.Query)
 	request += "\n*Диапазон цен:* минимально возможные цены 🎚️\n\n"
 
@@ -354,7 +348,6 @@ func (t trackedMode) readTrackedProducts() {
 		for t.botConf.users[products.ChatID].lastAction == showRequest {
 			continue
 		}
-
 		t.botConf.users[products.ChatID].sample.sample = products.Response.Sample
 
 		markets := make(map[string]int)
@@ -362,7 +355,6 @@ func (t trackedMode) readTrackedProducts() {
 		for _, market := range t.botConf.users[products.ChatID].request.Markets {
 			markets[market] = 0
 		}
-
 		t.botConf.users[products.ChatID].sample.samplePtr = markets
 
 		t.showTrackedProduct(products.ChatID)

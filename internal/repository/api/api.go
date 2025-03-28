@@ -153,38 +153,29 @@ func (p PriceServiceApi) SendAsyncBestPriceRequest(request dto.ProductRequest, h
 }
 
 // GetSupportedMarkets gets the markets that are supported by the price-service.
-func (p PriceServiceApi) GetSupportedMarkets() (map[string]string, error) {
+func (p PriceServiceApi) GetSupportedMarkets() (entities.SupportedMarkets, error) {
 	const op = "api.get-supported-markets"
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/markets", p.socket))
 
 	if err != nil {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		return nil, fmt.Errorf("error of the %s: %w: %s", op, ErrApiInteraction, err)
+		return entities.SupportedMarkets{}, fmt.Errorf("error of the %s: %w: %s", op, ErrApiInteraction, err)
 	} else if resp.StatusCode > 299 {
 		p.logger.Error(fmt.Sprintf("error of the %s: %s", op, ErrApiInteraction))
-		return nil, fmt.Errorf("error of the %s: %w", op, ErrApiInteraction)
+		return entities.SupportedMarkets{}, fmt.Errorf("error of the %s: %w", op, ErrApiInteraction)
 	}
 	defer resp.Body.Close()
 
-	resBody := make(map[string][]struct {
-		Name  string `json:"name"`
-		Emoji string `json:"emoji"`
-	})
+	var markets entities.SupportedMarkets
 
 	body, err := ReadResponseBody(resp.Body, p.logger, op)
 
 	if err != nil {
-		return nil, err
+		return entities.SupportedMarkets{}, err
 	}
 
-	json.Unmarshal(body, &resBody)
-
-	markets := make(map[string]string)
-
-	for _, val := range resBody["markets"] {
-		markets[val.Name] = val.Emoji
-	}
+	json.Unmarshal(body, &markets)
 
 	return markets, nil
 }

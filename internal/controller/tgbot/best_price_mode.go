@@ -71,7 +71,9 @@ func (b bestPriceMode) productSetter(chatID int64) {
 		message := tgbotapi.NewMessage(chatID, fmt.Sprint("*Упс... Кажется, ты не задал ни один маркет поиска 🛒*\n\n",
 			"*Задай сначала их, а затем товар 📦*",
 		))
+
 		message.ParseMode = markDown
+
 		message.ReplyMarkup = b.botConf.getKeyBoardWithMarkets(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
@@ -90,15 +92,10 @@ func (b bestPriceMode) productSetter(chatID int64) {
 	b.botConf.bot.Send(message)
 }
 
-// errorOfSearch defines the logic of searching's error processing.
-func (b bestPriceMode) errorOfSearchMode(chatID int64, err error) {
-	var errText = "*Упс... Похоже, произошла ошибка 😞*"
+// modeErrHandler the logic of searching's error processing.
+func (b bestPriceMode) modeErrHandler(chatID int64, response string) {
+	message := tgbotapi.NewMessage(chatID, response)
 
-	if errors.Is(err, api.ErrApiInteraction) {
-		errText += "\n\n*Что-то не так с парсером... \nПопробуй отключить VPN или попробовать позже ⏳*"
-	}
-
-	message := tgbotapi.NewMessage(chatID, errText)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
@@ -109,7 +106,7 @@ func (b bestPriceMode) errorOfSearchMode(chatID int64, err error) {
 	b.botConf.bot.Send(message)
 }
 
-// searchReply defines the logic of searching's reply.
+// searchModeReply defines the logic of searching's reply.
 func (b bestPriceMode) searchModeReply(chatID int64) {
 	iterInstrs := []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
@@ -143,17 +140,22 @@ func (b bestPriceMode) startSearch(chatID int64) {
 	const op = "tgbot.best-price-search"
 
 	b.botConf.users[chatID].lastAction = startSearch
-
 	products, err := b.api.GetProductsByBestPrice(b.botConf.users[chatID].request)
 
 	if err != nil {
 		b.logger.Warn(fmt.Sprintf("error of the %s: %s", op, err))
-		b.errorOfSearchMode(chatID, err)
+		response := "*Упс... Похоже, произошла ошибка 😞*"
+
+		if errors.Is(err, api.ErrApiInteraction) {
+			response += "\n\n*Что-то не так с парсером... \nПопробуй отключить VPN или попробовать позже ⏳*"
+		}
+
+		b.modeErrHandler(chatID, response)
+
 		return
 	}
 
 	b.botConf.users[chatID].sample.sample = products
-
 	markets := make(map[string]int)
 
 	for _, market := range b.botConf.users[chatID].request.Markets {
@@ -161,7 +163,6 @@ func (b bestPriceMode) startSearch(chatID int64) {
 	}
 
 	b.botConf.users[chatID].sample.samplePtr = markets
-
 	b.searchModeReply(chatID)
 }
 
@@ -176,9 +177,7 @@ func (p bestPriceMode) showRequest(chatID int64) {
 	}
 
 	request += fmt.Sprintf("\n*Товар: %s* 📦\n", p.botConf.users[chatID].request.Query)
-
 	request += "\n*Диапазон цен:* минимально возможные цены 🎚️\n\n"
-
 	request += "*Если ты заметил, что ошибся в запросе - собери заново!* 👇"
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -202,6 +201,5 @@ func (p bestPriceMode) setRequest(update *tgbotapi.Update) {
 	request := p.botConf.users[chatID].request
 
 	request.Query = update.Message.Text
-
 	p.botConf.users[chatID].request = request
 }

@@ -151,8 +151,8 @@ func (t *TgBot) Run() {
 				t.track.getTrackedProduct(chatID)
 
 			default:
-				for market := range t.botConf.markets {
-					if update.CallbackQuery.Data == market {
+				for _, market := range t.botConf.markets.Markets {
+					if update.CallbackQuery.Data == market.MarketName {
 						if user, flagExist := t.botConf.users[chatID]; flagExist &&
 							user.lastAction == productsIter {
 							t.prodsMode.productsIter(chatID, strings.ToLower(update.CallbackQuery.Data))
