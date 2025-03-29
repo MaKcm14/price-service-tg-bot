@@ -4,7 +4,7 @@ services:
 
       container_name: migrate
 
-      command: ["-path", "/migrations", "-database", "postgresql://postgres:my_password@localhost:5432/testPPTgBotDB?sslmode=disable", "up", "1"]
+      command: ["-path", "/migrations", "-database", "postgresql://postgres:my_password@localhost:5432/tgBotDB?sslmode=disable", "up", "1"]
 
       network_mode: container:postgres
 
