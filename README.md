@@ -3,7 +3,7 @@
 Prices are so unstable… You can't track them in every market.  
 Trust this bot to do the job, and you'll forget about daily analysis.  
 
-It integrates with the **Price Service Project**, making searches easier and more precise.  
+It integrates with the [price-service](https://github.com/MaKcm14/price-service), making searches easier and more precise.  
 
 ---
 
