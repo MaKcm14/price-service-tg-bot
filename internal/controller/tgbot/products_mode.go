@@ -21,12 +21,10 @@ func newProductsMode(bot *tgBotConfigs) productsMode {
 }
 
 // marketSetterMode sets the markets.
-func (b *productsMode) marketSetterMode(chatID int64) {
-	b.botConf.users[chatID].lastAction = marketSetterMode
+func (p *productsMode) marketSetterMode(chatID int64) {
+	p.botConf.users[chatID].lastAction = marketSetterMode
 
-	keyboardMarketSetter := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
+	keyboardMarketSetter := p.botConf.getKeyBoardWithMarkets(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Задать товар 📦", productSetter)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
@@ -36,7 +34,7 @@ func (b *productsMode) marketSetterMode(chatID int64) {
 	message.ParseMode = markDown
 	message.ReplyMarkup = keyboardMarketSetter
 
-	b.botConf.bot.Send(message)
+	p.botConf.bot.Send(message)
 }
 
 // nextProduct defines the logic of getting the next product.
@@ -50,7 +48,6 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 	}
 
 	sample := p.botConf.users[chatID].sample.sample[market]
-
 	p.botConf.users[chatID].sample.samplePtr[market] = count + 1
 
 	productDesc := []string{
@@ -71,9 +68,7 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 		buffer.WriteString(desc)
 	}
 
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
+	keyboard := p.botConf.getKeyBoardWithMarkets(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить товар в избранное ⭐", addToFavorite)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
@@ -90,11 +85,11 @@ func (p *productsMode) nextProduct(chatID int64, market string) {
 func (p *productsMode) productsIter(chatID int64, market string) {
 	if p.botConf.users[chatID].lastAction != productsIter {
 		choiceText := "*Выбери, откуда ты хочешь получить товар* 👇"
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Megamarket 🛍️", megamarket)),
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Wildberries 🌸", wildberries)),
+
+		keyboard := p.botConf.getKeyBoardWithMarkets(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 		)
+
 		message := tgbotapi.NewMessage(chatID, choiceText)
 
 		message.ParseMode = markDown
@@ -119,7 +114,6 @@ func (p *productsMode) addMarket(update *tgbotapi.Update) {
 	p.botConf.users[chatID].request.Markets[update.CallbackQuery.Data] = update.CallbackQuery.Data
 
 	p.botConf.users[chatID].request = dto.ProductRequest{
-		Mode:    request.Mode,
 		Markets: request.Markets,
 	}
 }

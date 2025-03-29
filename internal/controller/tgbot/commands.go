@@ -28,7 +28,7 @@ func (t *TgBot) start(chatID int64) {
 		buffer.WriteString(greet)
 	}
 
-	t.userInteractor.IdentifyUser(chatID)
+	t.uinter.IdentifyUser(chatID)
 
 	keyboardStart := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction),

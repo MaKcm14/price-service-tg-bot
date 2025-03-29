@@ -16,8 +16,7 @@ import (
 type favoriteMode struct {
 	botConf *tgBotConfigs
 	logger  *slog.Logger
-
-	repo services.Repository
+	repo    services.Repository
 }
 
 func newFavoriteMode(log *slog.Logger, bot *tgBotConfigs, repo services.Repository) favoriteMode {
@@ -48,12 +47,16 @@ func (f *favoriteMode) addFavoriteProduct(chatID int64) {
 
 	if err != nil {
 		f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		response = "*Упс... Похоже, произошла ошибка 😞*"
+		f.modeErrHandler(chatID, "*Упс... Похоже, произошла ошибка 😞*")
+		return
 	}
 
 	message := tgbotapi.NewMessage(chatID, response)
 
 	message.ParseMode = markDown
+	message.ReplyMarkup = f.botConf.getKeyBoardWithMarkets(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
+	)
 
 	f.botConf.bot.Send(message)
 }
@@ -136,30 +139,9 @@ func (f *favoriteMode) showProduct(chatID int64, products map[int]entities.Produ
 	f.botConf.bot.Send(message)
 }
 
-// showProductModeGettingErrHandler defines the logic of processing
+// modeErrHandler defines the logic of processing
 // the error of getting the favorite products.
-func (f *favoriteMode) showProductModeGettingErrHandler(chatID int64, err error) {
-	const op = "tgbot.show-favorite-products"
-
-	f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-
-	response := "*Упс... Похоже, произошла ошибка 😞*"
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
-	)
-
-	message := tgbotapi.NewMessage(chatID, response)
-
-	message.ReplyMarkup = keyboard
-	message.ParseMode = markDown
-
-	f.botConf.bot.Send(message)
-}
-
-// showProductModeNoProdsHandler defines the logic of processing the
-// empty favorites products array getting.
-func (f *favoriteMode) showProductModeNoProdsHandler(chatID int64) {
-	response := "*Товаров больше нет 📦*"
+func (f *favoriteMode) modeErrHandler(chatID int64, response string) {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Меню 📋", menuAction)),
 	)
@@ -174,16 +156,20 @@ func (f *favoriteMode) showProductModeNoProdsHandler(chatID int64) {
 
 // showFavoriteProducts defines the logic of handling the favorite products request.
 func (f *favoriteMode) showFavoriteProducts(chatID int64) {
+	const op = "tgbot.show-favorite-products"
+
 	f.botConf.users[chatID].lastAction = showFavoriteProducts
 
 	products, err := f.repo.GetFavoriteProducts(context.Background(), chatID)
 
 	if err != nil {
-		f.showProductModeGettingErrHandler(chatID, err)
+		f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
+		f.modeErrHandler(chatID, "*Упс... Похоже, произошла ошибка 😞*")
 		return
 
 	} else if len(f.botConf.users[chatID].favorites.favoriteLastProdsID) == len(products) {
-		f.showProductModeNoProdsHandler(chatID)
+		f.logger.Warn(fmt.Sprintf("error of the %s: %s", op, err))
+		f.modeErrHandler(chatID, "*Товаров больше нет 📦*")
 		return
 	}
 
@@ -202,7 +188,7 @@ func (f *favoriteMode) deleteFavoriteProduct(chatID int64) {
 
 	if err != nil {
 		f.logger.Error(fmt.Sprintf("error of the %s: %s", op, err))
-		response = "*Упс... Похоже, произошла ошибка 😞*"
+		f.modeErrHandler(chatID, "*Упс... Похоже, произошла ошибка 😞*")
 	} else {
 		delete(f.botConf.users[chatID].favorites.favoriteLastProdsID,
 			f.botConf.users[chatID].favorites.lastFavoriteProdID)

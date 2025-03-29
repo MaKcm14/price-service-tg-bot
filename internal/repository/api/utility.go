@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/url"
+	"strings"
 
 	"github.com/MaKcm14/price-service/pkg/entities"
 )
@@ -20,8 +21,8 @@ func (u urlConverter) convertMarkets(markets map[string]string) (string, error) 
 	var marketsView string
 
 	count := 0
-	for _, market := range markets {
-		marketsView += market
+	for market := range markets {
+		marketsView += strings.ToLower(market)
 		count++
 		if count != len(markets) {
 			marketsView += "+"
@@ -50,12 +51,12 @@ func (u urlConverter) buildURL(basePath string, filters ...string) string {
 }
 
 // productResponse defines the user's product response from API.
-type productResponse struct {
+type ProductResponse struct {
 	Sample map[string]entities.ProductSample `json:"samples"`
 }
 
-func newProductResponse() productResponse {
-	return productResponse{
+func NewProductResponse() ProductResponse {
+	return ProductResponse{
 		Sample: make(map[string]entities.ProductSample),
 	}
 }
@@ -79,4 +80,30 @@ func ReadResponseBody(source io.Reader, logger *slog.Logger, serviceType string)
 	}
 
 	return respBody, nil
+}
+
+// header defines the data structure of the extra-header.
+type header struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// extraHeader defines the data structure of extra-headers that must be included in the async response.
+type extraHeaders struct {
+	Headers []header `json:"headers"`
+}
+
+func newExtraHeaders(headers map[string]string) extraHeaders {
+	extraHeaders := extraHeaders{
+		make([]header, 0, len(headers)),
+	}
+
+	for key, val := range headers {
+		extraHeaders.Headers = append(extraHeaders.Headers, header{
+			Key:   key,
+			Value: val,
+		})
+	}
+
+	return extraHeaders
 }

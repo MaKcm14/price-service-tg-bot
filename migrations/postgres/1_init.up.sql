@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE TABLE IF NOT EXISTS tracked_products (
 	tracked_id SERIAL PRIMARY KEY,
 	product_name VARCHAR(300) NOT NULL,
-	price_down_bound INT NOT NULL,
-	price_up_bound INT NOT NULL,
 	market_filter TEXT[] NOT NULL,
 	user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );

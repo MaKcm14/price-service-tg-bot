@@ -1,5 +1,7 @@
 FROM golang:1.23-alpine3.21
 
+LABEL maintainer="maksimacx50@gmail.com"
+
 WORKDIR /tgbot
 
 COPY . .

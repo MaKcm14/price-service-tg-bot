@@ -1,11 +1,16 @@
 package tgbot
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/repository/kafka"
 	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services"
+	"github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/services/actor"
 )
 
 // TgBot defines the bot's logic.
@@ -13,15 +18,27 @@ type TgBot struct {
 	logger  *slog.Logger
 	botConf *tgBotConfigs
 
-	userInteractor services.UserConfiger
-	api            services.ApiInteractor
+	favorite favoriteMode
+	track    trackedMode
 
-	favorite  favoriteMode
 	prodsMode productsMode
-	search    searchMode
+	bestPrice bestPriceMode
+
+	set    setter
+	search searcher
+	uinter services.UserConfiger
+	api    services.Actor
 }
 
-func New(token string, logger *slog.Logger, interactor services.UserConfiger, api services.ApiInteractor, repo services.Repository) (*TgBot, error) {
+func New(
+	token string,
+	logger *slog.Logger,
+	interactor services.UserConfiger,
+	api services.ApiInteractor,
+	repo services.Repository,
+	trackedProducts chan *kafka.TrackedProduct,
+	reader services.Reader,
+) (*TgBot, error) {
 	logger.Info("initializing the bot begun")
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -31,15 +48,22 @@ func New(token string, logger *slog.Logger, interactor services.UserConfiger, ap
 		return &TgBot{}, err
 	}
 
-	botConf := newTgBotConfigs(bot)
+	botConf, err := newTgBotConfigs(bot, api)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("error of configuring the tg-bot: %s", err))
+		return nil, fmt.Errorf("error of configuring the tg-bot: %s", err)
+	}
 
 	return &TgBot{
-		botConf:        botConf,
-		logger:         logger,
-		userInteractor: interactor,
-		favorite:       newFavoriteMode(logger, botConf, repo),
-		prodsMode:      newProductsMode(botConf),
-		api:            api,
+		botConf:   botConf,
+		logger:    logger,
+		uinter:    interactor,
+		favorite:  newFavoriteMode(logger, botConf, repo),
+		prodsMode: newProductsMode(botConf),
+		track:     newTrackedMode(botConf, repo, logger, api, trackedProducts, reader),
+		bestPrice: newBestPriceMode(logger, botConf, api),
+		api:       actor.NewAPI(logger, repo, api),
 	}, nil
 }
 
@@ -51,6 +75,9 @@ func (t *TgBot) Run() {
 	updateConfig.Timeout = 30
 
 	updates := t.botConf.bot.GetUpdatesChan(updateConfig)
+
+	go t.track.readTrackedProducts()
+	go t.api.SendTrackedProducts(context.Background())
 
 	for update := range updates {
 		if update.Message != nil {
@@ -66,8 +93,8 @@ func (t *TgBot) Run() {
 			default:
 				if user, flagExist := t.botConf.users[chatID]; flagExist &&
 					user.lastAction == productSetter {
-					t.search.setRequest(&update)
-					t.search.showRequest(chatID)
+					t.set.setRequest(&update)
+					t.set.showRequest(chatID)
 				}
 			}
 
@@ -78,24 +105,23 @@ func (t *TgBot) Run() {
 			case menuAction:
 				t.menu(chatID)
 
-			case bestPriceModeData:
-				t.search = newBestPriceMode(t.logger, t.botConf, t.api)
-				t.search.mode(chatID)
+			case bestPriceModeData, addTrackedProductData:
+
+				if update.CallbackQuery.Data == bestPriceModeData {
+					t.set = &t.bestPrice
+					t.search = &t.bestPrice
+
+				} else if update.CallbackQuery.Data == addTrackedProductData {
+					t.set = t.track
+				}
+
+				t.set.mode(chatID)
 
 			case marketSetterMode:
 				t.prodsMode.marketSetterMode(chatID)
 
-			case wildberries, megamarket:
-				if user, flagExist := t.botConf.users[chatID]; flagExist &&
-					user.lastAction == productsIter {
-					t.prodsMode.productsIter(chatID, update.CallbackQuery.Data)
-					continue
-				}
-
-				t.prodsMode.addMarket(&update)
-
 			case productSetter:
-				t.search.productSetter(chatID)
+				t.set.productSetter(chatID)
 
 			case startSearch:
 				t.search.startSearch(chatID)
@@ -115,7 +141,32 @@ func (t *TgBot) Run() {
 			case deleteFavoriteProduct:
 				t.favorite.deleteFavoriteProduct(chatID)
 
+			case trackedModeData:
+				t.track.trackedModeMenu(chatID)
+
+			case deleteTrackedProductData:
+				t.track.deleteTrackedProduct(chatID)
+
+			case getTrackedProdMode:
+				t.track.getTrackedProduct(chatID)
+
+			default:
+				for _, market := range t.botConf.markets.Markets {
+					if update.CallbackQuery.Data == market.MarketName {
+						if user, flagExist := t.botConf.users[chatID]; flagExist &&
+							user.lastAction == productsIter {
+							t.prodsMode.productsIter(chatID, strings.ToLower(update.CallbackQuery.Data))
+							continue
+						}
+
+						t.prodsMode.addMarket(&update)
+					}
+				}
 			}
 		}
 	}
+}
+
+func (t *TgBot) Close() {
+	t.track.close()
 }

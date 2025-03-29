@@ -3,7 +3,7 @@
 Prices are so unstable… You can't track them in every market.  
 Trust this bot to do the job, and you'll forget about daily analysis.  
 
-It integrates with the **Price Service Project**, making searches easier and more precise.  
+It integrates with the [price-service](https://github.com/MaKcm14/price-service), making searches easier and more precise.  
 
 ---
 
@@ -22,25 +22,26 @@ The Telegram bot has several key functions:
   This mode allows you to manage your favorite products and interact with them (add and remove items).  
 
 - **Tracking Mode**:  
-  This mode enables time-based product searches, working as a notification system that provides search results.  
+  This mode enables time-based product searches, working as a notification system that provides search results every 24 hours.  
 
 ## How to Install and Start  
 
 Since this service depends on **Price Service**, some additional steps are required to use the bot.  
 
-For a simpler installation and setup process, refer to the **best-price-project-deployment** guide.  
+For a simpler installation and setup process, refer to the [best-price-project-deployment](https://github.com/MaKcm14/best-price-project-deployment) guide.  
 
-## Note  
+## Configuring the .env
 
-To start the bot, create a **.env** file in the root of the source directory with the following structure:  
+To start the bot, create a **.env** file in the root of the source directory with the structure as in the **.env_example** 
 
-```
-BOT_TOKEN="your_bot_token_here"
+or **copy the .env_default into the .env with your_bot_token**.
 
-DSN="postgresql://user:pwd@ip:5432/dbName"
+The **.env_default** already configured for using.
 
-PRICE_SERVICE_SOCKET="socket"
-```
+You can customize your .env files according to your infrastructure.
+
+### Note
+Some changes in the .env file can lead to the necessity of changes in the main docker-compose files of deployment.
 
 ## Examples  
 
@@ -55,5 +56,5 @@ You need to obtain the **bot token** from [**@BotFather**](https://t.me/BotFathe
 - PostgreSQL  
 - Redis  
 - Docker  
-- Kafka *(in progress)*  
+- Kafka
 - Telegram API  
