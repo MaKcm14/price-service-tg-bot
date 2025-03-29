@@ -18,6 +18,7 @@ services:
         depends_on:
           - redis
 
+
 volumes:
     price-service-tgbot-volume:
         name: tgbot-logs

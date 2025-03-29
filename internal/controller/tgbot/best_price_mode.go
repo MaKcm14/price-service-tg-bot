@@ -106,8 +106,8 @@ func (b bestPriceMode) modeErrHandler(chatID int64, response string) {
 	b.botConf.bot.Send(message)
 }
 
-// searchModeReply defines the logic of searching's reply.
-func (b bestPriceMode) searchModeReply(chatID int64) {
+// searchReply defines the logic of searching's reply.
+func (b bestPriceMode) searchReply(chatID int64) {
 	iterInstrs := []string{
 		"*Запрос был обработан успешно!* 😊\n\n",
 		"❓*Как использовать поиск?*\n",
@@ -163,7 +163,7 @@ func (b bestPriceMode) startSearch(chatID int64) {
 	}
 
 	b.botConf.users[chatID].sample.samplePtr = markets
-	b.searchModeReply(chatID)
+	b.searchReply(chatID)
 }
 
 // showRequest shows the finished request that will use to get the products.
