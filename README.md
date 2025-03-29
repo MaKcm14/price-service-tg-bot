@@ -32,7 +32,11 @@ For a simpler installation and setup process, refer to the **best-price-project-
 
 ## Configuring the .env
 
-To start the bot, create a **.env** file in the root of the source directory with the structure as in the **.env_example** or **copy the .env_default into the .env with your_bot_token**.
+To start the bot, create a **.env** file in the root of the source directory with the structure as in the **.env_example** 
+
+or **copy the .env_default into the .env with your_bot_token**.
+
+The **.env_default** already configured for using.
 
 You can customize your .env files according to your infrastructure.
 
