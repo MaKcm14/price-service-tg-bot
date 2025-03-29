@@ -28,7 +28,7 @@ The Telegram bot has several key functions:
 
 Since this service depends on **Price Service**, some additional steps are required to use the bot.  
 
-For a simpler installation and setup process, refer to the **best-price-project-deployment** guide.  
+For a simpler installation and setup process, refer to the [best-price-project-deployment](https://github.com/MaKcm14/best-price-project-deployment) guide.  
 
 ## Configuring the .env
 
