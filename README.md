@@ -22,7 +22,7 @@ The Telegram bot has several key functions:
   This mode allows you to manage your favorite products and interact with them (add and remove items).  
 
 - **Tracking Mode**:  
-  This mode enables time-based product searches, working as a notification system that provides search results.  
+  This mode enables time-based product searches, working as a notification system that provides search results every 24 hours.  
 
 ## How to Install and Start  
 
@@ -30,19 +30,14 @@ Since this service depends on **Price Service**, some additional steps are requi
 
 For a simpler installation and setup process, refer to the **best-price-project-deployment** guide.  
 
-## Note  
+## Configuring the .env
 
-To start the bot, create a **.env** file in the root of the source directory with the following structure:  
+To start the bot, create a **.env** file in the root of the source directory with the structure as in the **.env_example** or **copy the .env_default into the .env with your_bot_token**.
 
-```
-BOT_TOKEN="your_bot_token_here"
+You can customize your .env files according to your infrastructure.
 
-DSN="postgresql://user:pwd@ip:5432/dbName"
-
-PRICE_SERVICE_SOCKET="socket"
-
-BROKERS="broker_socket_1 broker_socker_2 ..."
-```
+### Note
+Some changes in the .env file can lead to the necessity of changes in the main docker-compose files of deployment.
 
 ## Examples  
 
