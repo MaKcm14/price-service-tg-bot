@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	conf "github.com/MaKcm14/best-price-service/price-service-tg-bot/internal/config"
@@ -55,7 +57,12 @@ func (s *Service) Run() {
 	defer s.logger.Info("the bot was fully STOPPED")
 
 	s.logger.Info("starting the bot and the other services")
-	s.bot.Run()
+	go s.bot.Run()
+
+	sig := make(chan os.Signal, 3)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+
+	<-sig
 }
 
 func mustSetLogger() (*slog.Logger, *os.File) {
